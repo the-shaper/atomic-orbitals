@@ -1,5 +1,7 @@
 # Atomic Orbitals Visualization
 
+Energy is the capacity for work.
+
 An interactive visualization of atomic orbitals using HTML5 Canvas. This project creates a radar-like display that simulates the movement and interaction of celestial bodies with various visual effects.
 
 ## Features
