@@ -1,36 +1,71 @@
 const canvas = document.getElementById("radarCanvas");
 const ctx = canvas.getContext("2d");
 
-// Set canvas size with higher resolution for retina displays
+// Set initial canvas size
 canvas.width = 1000;
 canvas.height = 1000;
+
+// Add resize observer for responsive canvas
+const resizeObserver = new ResizeObserver((entries) => {
+  // Use requestAnimationFrame to throttle updates
+  requestAnimationFrame(() => {
+    for (const entry of entries) {
+      const container = entry.target;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const size = Math.min(width, height);
+
+      // Only update if size has actually changed
+      if (canvas.width !== size * 2) {
+        // Set canvas resolution (2x for retina displays)
+        canvas.width = size * 2;
+        canvas.height = size * 2;
+
+        // Update config to maintain proportions
+        config.centerX = canvas.width / 2;
+        config.centerY = canvas.height / 2;
+        config.radius = canvas.width * 0.4; // Keep radius at 40% of canvas width
+
+        // Update planet radius to maintain ring level 3
+        dots.planet.radius = (config.radius / config.rings) * 3;
+
+        // Update sun position to stay centered
+        dots.sun.x = config.centerX;
+        dots.sun.y = config.centerY;
+      }
+    }
+  });
+});
+
+// Observe the radar container
+resizeObserver.observe(document.querySelector(".radar-container"));
 
 // Configuration
 const config = {
   centerX: canvas.width / 2,
   centerY: canvas.height / 2,
-  radius: 400,
+  radius: canvas.width * 0.4, // 40% of canvas width
   backgroundColor: "#f3ffe6",
   gridColor: "#cce0cc",
   textColor: "#cce0cc",
   dotColors: ["#ffb347", "#2b4d59", "#a5a5a5"], // sun, planet, moon colors
   activeMoonColor: "#ff6b35",
-  syncLineColor: "#ff6b35", // New property for sync line color
+  syncLineColor: "#ff6b35",
   days: ["MON", "TUE", "WED", "THU", "FRI", "SAT"],
   rings: 4,
-  radarRotation: 0, // New property for radar rotation
-  gravityEnabled: false, // Add this line to set gravity off by default
+  radarRotation: 0,
+  gravityEnabled: false,
   gravityStrength: 0.5,
   alignmentDays: new Set([1, 4]), // Tuesday and Friday by default
-  transitionDuration: 0.2, // Duration of transition in days
-  maxGravityEffect: 120, // New property for maximum gravity strength
+  brainstreamDays: new Set([2, 5]), // Wednesday and Saturday by default
+  transitionDuration: 0.2,
+  maxGravityEffect: 120,
   moonSizeMultiplier: 1,
   GOLDEN_RATIO: 1.618,
   transitionCurve: "easeInOut",
   waveAmplitude: 5,
   waveSpeed: 3,
-  waveLength: 2, // New property for wavelength
-  // Add heartbeat configuration
+  waveLength: 2,
   sunHeartbeat: {
     enabled: true,
     beatsPerDay: 1.0,
@@ -39,9 +74,9 @@ const config = {
     enabled: true,
     beatsPerDay: 1.0,
   },
-  isPlaying: false, // Add animation state
-  startTime: Date.now(), // Add reference time for animations
-  pauseTime: 0, // Add pause time tracking
+  isPlaying: false,
+  startTime: Date.now(),
+  pauseTime: 0,
   planetWave: {
     amplitude: 5,
     speed: 3,
@@ -54,7 +89,65 @@ const config = {
     wavelength: 2,
     thickness: 2,
   },
-  secondWaveColor: "#2b4d59", // Add new color property
+  secondWaveColor: "#2b4d59",
+  secondMoon: {
+    enabled: false,
+    color: "#808080",
+    activeColor: "#ff9b35",
+  },
+  planetParticles: {
+    enabled: false,
+    color: "#2b4d59",
+    size: 3,
+    amount: 30,
+    speed: 5,
+    opacity: 0.7,
+    dispersion: 30,
+    dayTiming: true,
+    alignmentSync: false,
+    particles: [], // Will store particle positions
+  },
+  sunParticles: {
+    enabled: false,
+    color: "#ffb347",
+    size: 3,
+    amount: 30,
+    speed: 5,
+    opacity: 0.7,
+    dispersion: 30,
+    dayTiming: true,
+    alignmentSync: false,
+    particles: [], // Will store particle positions
+  },
+  planetRadioWaves: {
+    enabled: false,
+    color: "#2b4d59",
+    speed: 3,
+    spacing: 20,
+    thickness: 1.5,
+    arc: 90,
+    range: 100,
+    opacity: 0.7,
+    dayTiming: true,
+    alignmentSync: false,
+    waves: [],
+  },
+  sunRadioWaves: {
+    enabled: false,
+    color: "#ffb347",
+    speed: 3,
+    spacing: 20,
+    thickness: 1.5,
+    arc: 90,
+    range: 100,
+    opacity: 0.7,
+    dayTiming: true,
+    alignmentSync: false,
+    waves: [],
+  },
+  lineThickness: 1,
+  fontSize: 20,
+  fontFamily: "Arial",
 };
 
 // Update the MILLISECONDS_PER_DAY constant to represent one day (1/6 of the radar)
@@ -69,30 +162,44 @@ const DEGREES_PER_DAY = (Math.PI * 2) / 6;
 
 // Dot objects (celestial bodies)
 const dots = {
-  sun: { x: config.centerX, y: config.centerY, size: 16 },
+  sun: { x: config.centerX, y: config.centerY, size: 16, baseSize: 16 },
   planet: {
-    radius: thirdRingRadius,
+    radius: (config.radius / config.rings) * 3,
     angle: MONDAY_START,
     size: 12,
+    baseSize: 12,
     x: 0,
     y: 0,
-    period: MILLISECONDS_PER_DAY, // One rotation per day
+    period: MILLISECONDS_PER_DAY,
     direction: 1,
   },
   moon: {
     orbitRadius: 40,
-    startingAngle: 0,
-    angle: 0,
+    startingAngle: (270 * Math.PI) / 180, // 270 degrees in radians
+    angle: (270 * Math.PI) / 180, // Initialize angle to match starting angle
     size: 8,
     x: 0,
     y: 0,
-    period: MILLISECONDS_PER_DAY / 2, // Two rotations per day
+    period: MILLISECONDS_PER_DAY * 2, // 0.5 rotations per day
+    direction: 1,
+  },
+  secondMoon: {
+    orbitRadius: 40,
+    startingAngle: (90 * Math.PI) / 180, // Opposite to first moon
+    angle: (90 * Math.PI) / 180,
+    size: 8,
+    x: 0,
+    y: 0,
+    period: MILLISECONDS_PER_DAY * 2,
     direction: 1,
   },
 };
 
 // Communication lines state
 const communicationLines = Array(6).fill(false);
+
+// Update the base speed constant
+const BASE_PLANET_SPEED = 1000; // Base milliseconds for one complete orbit
 
 // Control handlers
 function initializeControls() {
@@ -106,8 +213,13 @@ function initializeControls() {
 
   document.getElementById("planetPeriod").addEventListener("input", (e) => {
     const step = parseInt(e.target.value);
-    const velocityMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1); // Subtract 1 so first step is 1x
-    dots.planet.period = MILLISECONDS_PER_DAY / velocityMultiplier;
+    // Calculate velocity multiplier: 1x, 1.618x, 2.618x, 4.236x, 6.854x
+    const velocityMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+
+    // Faster speed = smaller period
+    dots.planet.period = BASE_PLANET_SPEED / velocityMultiplier;
+
+    // Update display with the actual multiplier
     updateValueDisplay("planetPeriod", velocityMultiplier.toFixed(3), "×");
   });
 
@@ -117,8 +229,10 @@ function initializeControls() {
 
   // Moon controls
   document.getElementById("moonOrbitRadius").addEventListener("input", (e) => {
-    dots.moon.orbitRadius = parseInt(e.target.value);
-    updateValueDisplay("moonOrbitRadius", e.target.value, "px");
+    const radius = parseInt(e.target.value);
+    dots.moon.orbitRadius = radius;
+    // Direction is now controlled by the Direction dropdown instead
+    updateValueDisplay("moonOrbitRadius", radius, "px");
   });
 
   document.getElementById("moonPeriod").addEventListener("input", (e) => {
@@ -152,6 +266,18 @@ function initializeControls() {
         config.alignmentDays.add(day);
       } else {
         config.alignmentDays.delete(day);
+      }
+    });
+  });
+
+  // Brainstream sync day selection controls
+  document.querySelectorAll(".brainstream-day-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", (e) => {
+      const day = parseInt(e.target.value);
+      if (e.target.checked) {
+        config.brainstreamDays.add(day);
+      } else {
+        config.brainstreamDays.delete(day);
       }
     });
   });
@@ -347,11 +473,329 @@ function initializeControls() {
     config.gravityEnabled = e.target.checked;
   });
 
+  // Add sun size control
+  document.getElementById("sunSize").addEventListener("input", (e) => {
+    const step = parseInt(e.target.value);
+    // Calculate size multiplier: 1x, 1.618x, 2.618x, 4.236x, 6.854x
+    const sizeMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+
+    // Update sun size based on base size and multiplier
+    dots.sun.size = dots.sun.baseSize * sizeMultiplier;
+
+    // Update display with the actual multiplier
+    updateValueDisplay("sunSize", sizeMultiplier.toFixed(3), "×");
+  });
+
+  // Second moon controls
+  document
+    .getElementById("secondMoonEnabled")
+    .addEventListener("change", (e) => {
+      config.secondMoon.enabled = e.target.checked;
+    });
+
+  document.getElementById("secondMoonColor").addEventListener("input", (e) => {
+    config.secondMoon.color = e.target.value;
+  });
+
+  document
+    .getElementById("secondMoonActiveColor")
+    .addEventListener("input", (e) => {
+      config.secondMoon.activeColor = e.target.value;
+    });
+
+  // Planet size control
+  document.getElementById("planetSize").addEventListener("input", (e) => {
+    const step = parseInt(e.target.value);
+    const sizeMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+    dots.planet.size = dots.planet.baseSize * sizeMultiplier;
+    updateValueDisplay("planetSize", sizeMultiplier.toFixed(3), "×");
+  });
+
+  // Particle flow controls
+  document
+    .getElementById("particleFlowEnabled")
+    .addEventListener("change", (e) => {
+      config.planetParticles.enabled = e.target.checked;
+      if (config.planetParticles.enabled) {
+        initializeParticles();
+      }
+    });
+
+  document.getElementById("particleColor").addEventListener("input", (e) => {
+    config.planetParticles.color = e.target.value;
+  });
+
+  document.getElementById("particleSize").addEventListener("input", (e) => {
+    config.planetParticles.size = parseInt(e.target.value);
+    updateValueDisplay("particleSize", e.target.value, "px");
+  });
+
+  document.getElementById("particleAmount").addEventListener("input", (e) => {
+    config.planetParticles.amount = parseInt(e.target.value);
+    updateValueDisplay("particleAmount", e.target.value);
+    initializeParticles();
+  });
+
+  document.getElementById("particleSpeed").addEventListener("input", (e) => {
+    config.planetParticles.speed = parseInt(e.target.value);
+    updateValueDisplay("particleSpeed", e.target.value, "×");
+  });
+
+  document.getElementById("particleOpacity").addEventListener("input", (e) => {
+    config.planetParticles.opacity = parseInt(e.target.value) / 100;
+    updateValueDisplay("particleOpacity", e.target.value, "%");
+  });
+
+  document
+    .getElementById("particleDispersion")
+    .addEventListener("input", (e) => {
+      config.planetParticles.dispersion = parseInt(e.target.value);
+      updateValueDisplay("particleDispersion", e.target.value, "%");
+    });
+
+  document
+    .getElementById("particleDayTiming")
+    .addEventListener("change", (e) => {
+      config.planetParticles.dayTiming = e.target.checked;
+    });
+
+  // Sun particle controls
+  document
+    .getElementById("sunParticleFlowEnabled")
+    .addEventListener("change", (e) => {
+      config.sunParticles.enabled = e.target.checked;
+      if (config.sunParticles.enabled) {
+        initializeSunParticles();
+      }
+    });
+
+  document.getElementById("sunParticleColor").addEventListener("input", (e) => {
+    config.sunParticles.color = e.target.value;
+  });
+
+  document.getElementById("sunParticleSize").addEventListener("input", (e) => {
+    config.sunParticles.size = parseInt(e.target.value);
+    updateValueDisplay("sunParticleSize", e.target.value, "px");
+  });
+
+  document
+    .getElementById("sunParticleAmount")
+    .addEventListener("input", (e) => {
+      config.sunParticles.amount = parseInt(e.target.value);
+      updateValueDisplay("sunParticleAmount", e.target.value);
+      initializeSunParticles();
+    });
+
+  document.getElementById("sunParticleSpeed").addEventListener("input", (e) => {
+    config.sunParticles.speed = parseInt(e.target.value);
+    updateValueDisplay("sunParticleSpeed", e.target.value, "×");
+  });
+
+  document
+    .getElementById("sunParticleOpacity")
+    .addEventListener("input", (e) => {
+      config.sunParticles.opacity = parseInt(e.target.value) / 100;
+      updateValueDisplay("sunParticleOpacity", e.target.value, "%");
+    });
+
+  document
+    .getElementById("sunParticleDispersion")
+    .addEventListener("input", (e) => {
+      config.sunParticles.dispersion = parseInt(e.target.value);
+      updateValueDisplay("sunParticleDispersion", e.target.value, "%");
+    });
+
+  document
+    .getElementById("sunParticleDayTiming")
+    .addEventListener("change", (e) => {
+      config.sunParticles.dayTiming = e.target.checked;
+    });
+
+  // Add alignment sync controls
+  document
+    .getElementById("particleAlignmentSync")
+    .addEventListener("change", (e) => {
+      config.planetParticles.alignmentSync = e.target.checked;
+    });
+
+  document
+    .getElementById("sunParticleAlignmentSync")
+    .addEventListener("change", (e) => {
+      config.sunParticles.alignmentSync = e.target.checked;
+    });
+
+  // Planet radio wave controls
+  document
+    .getElementById("planetRadioWavesEnabled")
+    .addEventListener("change", (e) => {
+      config.planetRadioWaves.enabled = e.target.checked;
+      if (config.planetRadioWaves.enabled) {
+        initializePlanetRadioWaves();
+      }
+    });
+
+  document
+    .getElementById("planetRadioWaveColor")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.color = e.target.value;
+    });
+
+  document
+    .getElementById("planetRadioWaveSpeed")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.speed = parseInt(e.target.value);
+      updateValueDisplay("planetRadioWaveSpeed", e.target.value, "×");
+    });
+
+  document
+    .getElementById("planetRadioWaveSpacing")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.spacing = parseInt(e.target.value);
+      updateValueDisplay("planetRadioWaveSpacing", e.target.value, "px");
+    });
+
+  document
+    .getElementById("planetRadioWaveThickness")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.thickness = parseFloat(e.target.value);
+      updateValueDisplay("planetRadioWaveThickness", e.target.value, "px");
+    });
+
+  document
+    .getElementById("planetRadioWaveArc")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.arc = parseInt(e.target.value);
+      updateValueDisplay("planetRadioWaveArc", e.target.value, "°");
+    });
+
+  document
+    .getElementById("planetRadioWaveOpacity")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.opacity = parseInt(e.target.value) / 100;
+      updateValueDisplay("planetRadioWaveOpacity", e.target.value, "%");
+    });
+
+  document
+    .getElementById("planetRadioWaveDayTiming")
+    .addEventListener("change", (e) => {
+      config.planetRadioWaves.dayTiming = e.target.checked;
+    });
+
+  document
+    .getElementById("planetRadioWaveAlignmentSync")
+    .addEventListener("change", (e) => {
+      config.planetRadioWaves.alignmentSync = e.target.checked;
+    });
+
+  document
+    .getElementById("planetRadioWaveRange")
+    .addEventListener("input", (e) => {
+      config.planetRadioWaves.range = parseInt(e.target.value);
+      updateValueDisplay("planetRadioWaveRange", e.target.value, "%");
+    });
+
+  // Sun radio wave controls
+  document
+    .getElementById("sunRadioWavesEnabled")
+    .addEventListener("change", (e) => {
+      config.sunRadioWaves.enabled = e.target.checked;
+      if (config.sunRadioWaves.enabled) {
+        initializeSunRadioWaves();
+      }
+    });
+
+  document
+    .getElementById("sunRadioWaveColor")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.color = e.target.value;
+    });
+
+  document
+    .getElementById("sunRadioWaveSpeed")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.speed = parseInt(e.target.value);
+      updateValueDisplay("sunRadioWaveSpeed", e.target.value, "×");
+    });
+
+  document
+    .getElementById("sunRadioWaveSpacing")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.spacing = parseInt(e.target.value);
+      updateValueDisplay("sunRadioWaveSpacing", e.target.value, "px");
+    });
+
+  document
+    .getElementById("sunRadioWaveThickness")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.thickness = parseFloat(e.target.value);
+      updateValueDisplay("sunRadioWaveThickness", e.target.value, "px");
+    });
+
+  document.getElementById("sunRadioWaveArc").addEventListener("input", (e) => {
+    config.sunRadioWaves.arc = parseInt(e.target.value);
+    updateValueDisplay("sunRadioWaveArc", e.target.value, "°");
+  });
+
+  document
+    .getElementById("sunRadioWaveOpacity")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.opacity = parseInt(e.target.value) / 100;
+      updateValueDisplay("sunRadioWaveOpacity", e.target.value, "%");
+    });
+
+  document
+    .getElementById("sunRadioWaveDayTiming")
+    .addEventListener("change", (e) => {
+      config.sunRadioWaves.dayTiming = e.target.checked;
+    });
+
+  document
+    .getElementById("sunRadioWaveAlignmentSync")
+    .addEventListener("change", (e) => {
+      config.sunRadioWaves.alignmentSync = e.target.checked;
+    });
+
+  document
+    .getElementById("sunRadioWaveRange")
+    .addEventListener("input", (e) => {
+      config.sunRadioWaves.range = parseInt(e.target.value);
+      updateValueDisplay("sunRadioWaveRange", e.target.value, "%");
+    });
+
+  // Add radar line thickness control
+  document
+    .getElementById("radarLineThickness")
+    .addEventListener("input", (e) => {
+      config.lineThickness = parseFloat(e.target.value);
+      updateValueDisplay("radarLineThickness", e.target.value, "px");
+    });
+
+  // Add font controls
+  document.getElementById("radarFontFamily").addEventListener("change", (e) => {
+    config.fontFamily = e.target.value;
+  });
+
+  document.getElementById("radarFontSize").addEventListener("input", (e) => {
+    config.fontSize = parseInt(e.target.value);
+    updateValueDisplay("radarFontSize", e.target.value, "px");
+  });
+
+  // Add day label controls
+  for (let i = 0; i < 6; i++) {
+    document.getElementById(`dayLabel${i}`).addEventListener("input", (e) => {
+      const value = e.target.value.toUpperCase();
+      e.target.value = value;
+      config.days[i] = value || config.days[i];
+    });
+  }
+
   // Initialize all value displays
   updateValueDisplay("planetOrbitRadius", 3.0);
   updateValueDisplay("planetPeriod", 1.0, "/day");
+  updateValueDisplay("sunSize", 1.0, "×");
   updateValueDisplay("moonOrbitRadius", 40, "px");
-  updateValueDisplay("moonPeriod", 2.0, "/day");
+  updateValueDisplay("moonPeriod", 0.5, "/day");
+  updateValueDisplay("moonStartingPosition", 270, "°");
   updateValueDisplay("radarRotation", 0, "°");
   updateValueDisplay("gravityStrength", 0.5);
   updateValueDisplay("moonSizeMultiplier", config.GOLDEN_RATIO, "×");
@@ -371,7 +815,7 @@ function drawBackground() {
 
 function drawGrid() {
   ctx.strokeStyle = config.gridColor;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = config.lineThickness;
 
   // Save the current context state
   ctx.save();
@@ -406,8 +850,8 @@ function drawGrid() {
     ctx.stroke();
   }
 
-  // Draw day labels
-  ctx.font = "20px Arial";
+  // Draw day labels with updated font settings
+  ctx.font = `${config.fontSize}px ${config.fontFamily}`;
   ctx.fillStyle = config.textColor;
   ctx.textAlign = "center";
   config.days.forEach((day, i) => {
@@ -433,6 +877,10 @@ function linear(x) {
 }
 
 function easeInOut(x) {
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+}
+
+function easeInOutCubic(x) {
   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 }
 
@@ -504,21 +952,48 @@ function getTransitionFactor(dayProgress, dayNumber) {
   return factor;
 }
 
+function checkAlignment() {
+  const vectorToMoon = {
+    x: dots.moon.x - dots.sun.x,
+    y: dots.moon.y - dots.sun.y,
+  };
+  const vectorToPlanet = {
+    x: dots.planet.x - dots.sun.x,
+    y: dots.planet.y - dots.sun.y,
+  };
+
+  // Calculate angles from sun to both bodies
+  const moonAngle = Math.atan2(vectorToMoon.y, vectorToMoon.x);
+  const planetAngle = Math.atan2(vectorToPlanet.y, vectorToPlanet.x);
+
+  // Calculate the smallest angle between the two vectors (0 to PI)
+  let angleDiff = Math.abs(moonAngle - planetAngle);
+  if (angleDiff > Math.PI) {
+    angleDiff = 2 * Math.PI - angleDiff;
+  }
+
+  // Convert to a 0-1 scale where 0 is perfect alignment
+  const alignmentStrength = angleDiff / Math.PI;
+
+  return {
+    isAligned: alignmentStrength < 0.01,
+    alignmentStrength: alignmentStrength,
+  };
+}
+
 function updateDotPositions() {
   const currentTime = config.isPlaying
     ? Date.now() - config.startTime
     : config.pauseTime;
 
-  // Calculate planet angle
+  // Calculate angles
   const planetAngle = config.isPlaying
     ? MONDAY_START +
-      ((currentTime % (MILLISECONDS_PER_DAY * 6)) /
-        (MILLISECONDS_PER_DAY * 6)) *
+      ((currentTime % (dots.planet.period * 6)) / (dots.planet.period * 6)) *
         (Math.PI * 2) *
         dots.planet.direction
     : dots.planet.angle;
 
-  // Calculate moon angle continuously across all days
   const moonTimeProgress = config.isPlaying
     ? (currentTime % (MILLISECONDS_PER_DAY * 6)) / dots.moon.period
     : dots.moon.angle / (Math.PI * 2);
@@ -528,75 +1003,40 @@ function updateDotPositions() {
       moonTimeProgress * (Math.PI * 2) * dots.moon.direction
     : dots.moon.angle;
 
-  // Calculate current day segment time (keep this for other calculations)
-  const daySegment = Math.floor(
-    (currentTime % (MILLISECONDS_PER_DAY * 6)) / MILLISECONDS_PER_DAY
-  );
-  const dayProgress =
-    (currentTime % MILLISECONDS_PER_DAY) / MILLISECONDS_PER_DAY;
+  // Second moon angle (opposite to first moon)
+  const secondMoonAngle = config.isPlaying
+    ? dots.secondMoon.startingAngle +
+      moonTimeProgress * (Math.PI * 2) * dots.moon.direction
+    : dots.secondMoon.angle;
 
-  // Update planet position
+  // Update positions
   dots.planet.x = config.centerX + Math.cos(planetAngle) * dots.planet.radius;
   dots.planet.y = config.centerY + Math.sin(planetAngle) * dots.planet.radius;
   dots.planet.angle = planetAngle;
 
-  // Calculate moon position relative to planet
-  let moonX = Math.cos(moonAngle) * dots.moon.orbitRadius;
-  let moonY = Math.sin(moonAngle) * dots.moon.orbitRadius;
+  // Calculate moon positions
+  let moonX = Math.cos(moonAngle) * Math.abs(dots.moon.orbitRadius);
+  let moonY = Math.sin(moonAngle) * Math.abs(dots.moon.orbitRadius);
 
-  // Calculate transition state for gravity effect
-  const planetAngleNorm = (planetAngle - MONDAY_START) % (Math.PI * 2);
-  const dayNumber = Math.floor(planetAngleNorm / DEGREES_PER_DAY);
+  let secondMoonX =
+    Math.cos(secondMoonAngle) * Math.abs(dots.secondMoon.orbitRadius);
+  let secondMoonY =
+    Math.sin(secondMoonAngle) * Math.abs(dots.secondMoon.orbitRadius);
 
-  const transitionState = calculateTransitionState(dayProgress, dayNumber);
-
-  if (transitionState.smoothFactor > 0 && config.gravityEnabled) {
-    // Calculate vector from moon to sun
-    const moonToSun = {
-      x: config.centerX - (dots.planet.x + moonX),
-      y: config.centerY - (dots.planet.y + moonY),
-    };
-
-    // Calculate distance for inverse square law
-    const distance = Math.sqrt(
-      moonToSun.x * moonToSun.x + moonToSun.y * moonToSun.y
-    );
-
-    // Enhanced gravity effect with inverse square law
-    const baseGravityStrength =
-      config.gravityStrength * config.maxGravityEffect;
-    const gravityEffect =
-      (baseGravityStrength / (distance * 0.05)) * transitionState.smoothFactor;
-
-    // Create figure-8 effect
-    const moonRelativeAngle = Math.atan2(moonY, moonX);
-    const figurePullFactor = Math.sin(2 * moonRelativeAngle);
-
-    // Apply gravitational pull
-    const normalizedVector = {
-      x: moonToSun.x / distance,
-      y: moonToSun.y / distance,
-    };
-
-    const tangentialVector = {
-      x: -normalizedVector.y,
-      y: normalizedVector.x,
-    };
-
-    moonX +=
-      (normalizedVector.x * gravityEffect +
-        tangentialVector.x * gravityEffect * figurePullFactor) *
-      2;
-    moonY +=
-      (normalizedVector.y * gravityEffect +
-        tangentialVector.y * gravityEffect * figurePullFactor) *
-      2;
+  if (dots.moon.orbitRadius < 0) {
+    moonX = -moonX;
+    moonY = -moonY;
+    secondMoonX = -secondMoonX;
+    secondMoonY = -secondMoonY;
   }
 
-  // Add the planet's position to get the final moon position
   dots.moon.x = dots.planet.x + moonX;
   dots.moon.y = dots.planet.y + moonY;
   dots.moon.angle = moonAngle;
+
+  dots.secondMoon.x = dots.planet.x + secondMoonX;
+  dots.secondMoon.y = dots.planet.y + secondMoonY;
+  dots.secondMoon.angle = secondMoonAngle;
 }
 
 function calculateTransitionState(dayProgress, dayNumber) {
@@ -708,70 +1148,61 @@ function drawWavyLine(
 function calculateHeartbeatScale(beatsPerDay) {
   if (beatsPerDay <= 0) return 1;
 
-  // Use planet's position in the sun's orbit to determine the day progress
   const planetAngleNorm = (dots.planet.angle - MONDAY_START) % (Math.PI * 2);
   const dayProgress = (planetAngleNorm % DEGREES_PER_DAY) / DEGREES_PER_DAY;
-
-  // Calculate beat progress based on the planet's position in the current day segment
   const beatProgress = (dayProgress * beatsPerDay) % 1;
-
-  // Simulate the cardiac cycle phases
-  // Each phase is given a portion of the complete cycle
   const phase = beatProgress * Math.PI * 2;
 
-  // 1. Atrial Contraction (quick rise) - 15% of cycle
-  // 2. Isovolumetric Contraction (sharp peak) - 5% of cycle
-  // 3. Ventricular Ejection (plateau with slight decline) - 30% of cycle
-  // 4. Isovolumetric Relaxation (sharp drop) - 5% of cycle
-  // 5. Ventricular Filling (gradual rise) - 25% of cycle
-  // 6. Atrial Relaxation (baseline) - 20% of cycle
+  // Single smooth easing function
+  const easeOutQuint = (t) => 1 - Math.pow(1 - t, 5);
 
-  let scale = 1.0; // Base scale
+  // Simplified cardiac cycle with fewer phases and slower timing
   const cyclePosition = phase / (Math.PI * 2);
+  let scale = 1.0;
 
-  if (cyclePosition < 0.15) {
-    // Atrial Contraction
-    const t = cyclePosition / 0.15;
-    scale += 0.2 * Math.pow(t, 2);
-  } else if (cyclePosition < 0.2) {
-    // Isovolumetric Contraction
-    const t = (cyclePosition - 0.15) / 0.05;
-    scale += 0.2 + 0.1 * Math.sin(t * Math.PI);
+  if (cyclePosition < 0.3) {
+    // Doubled from 0.15
+    // Initial contraction (atrial) - slower rise
+    const t = cyclePosition / 0.3;
+    scale += 0.15 * easeOutQuint(t);
   } else if (cyclePosition < 0.5) {
-    // Ventricular Ejection
-    const t = (cyclePosition - 0.2) / 0.3;
-    scale += 0.3 * Math.pow(1 - t, 0.5);
-  } else if (cyclePosition < 0.55) {
-    // Isovolumetric Relaxation
-    const t = (cyclePosition - 0.5) / 0.05;
-    scale += 0.2 * (1 - Math.pow(t, 0.5));
-  } else if (cyclePosition < 0.8) {
-    // Ventricular Filling
-    const t = (cyclePosition - 0.55) / 0.25;
-    scale += 0.1 * Math.pow(t, 2);
-  } // else Atrial Relaxation (baseline)
+    // Increased from 0.3
+    // Main contraction (ventricular) - slower peak
+    const t = (cyclePosition - 0.3) / 0.2;
+    scale += 0.3 * (1 - easeOutQuint(1 - t));
+  } else if (cyclePosition < 0.7) {
+    // Increased from 0.4
+    // Peak and initial relaxation - slower descent
+    const t = (cyclePosition - 0.5) / 0.2;
+    scale += 0.3 * (1 - easeOutQuint(t));
+  } else if (cyclePosition < 0.9) {
+    // Increased from 0.7
+    // Gradual return to baseline - slower return
+    const t = (cyclePosition - 0.7) / 0.2;
+    scale += 0.15 * (1 - easeOutQuint(t));
+  }
+  // Rest period (no movement) - slightly shorter rest period
 
   return scale;
 }
 
 function drawDots() {
-  // Calculate planet's position in orbit for day tracking
   const planetAngleNorm = (dots.planet.angle - MONDAY_START) % (Math.PI * 2);
   const dayNumber = Math.floor(planetAngleNorm / DEGREES_PER_DAY);
   const dayProgress = (planetAngleNorm % DEGREES_PER_DAY) / DEGREES_PER_DAY;
 
   const transitionState = calculateTransitionState(dayProgress, dayNumber);
+  const isAlignmentDay = config.alignmentDays.has(dayNumber);
 
-  // Draw wavy alignment beams first
+  // Draw wavy alignment beams for first moon
   if (transitionState.smoothFactor > 0.01) {
     const sunPhase =
       (Date.now() / (1000 / config.sunWave.speed)) % (Math.PI * 2);
-    const moonPhase = sunPhase + Math.PI; // Offset by 180 degrees for DNA-like effect
-    const opacity = Math.floor(transitionState.smoothFactor * 128);
+    const moonPhase = sunPhase + Math.PI;
+    const opacity = Math.floor(transitionState.smoothFactor * 255); // Changed from 128 to 255 for full opacity range
     const opacityHex = opacity.toString(16).padStart(2, "0");
 
-    // Draw both waves between sun and moon
-    // First wave
+    // First moon waves
     ctx.strokeStyle = `${config.syncLineColor}${opacityHex}`;
     drawWavyLine(
       dots.sun.x,
@@ -784,7 +1215,6 @@ function drawDots() {
       config.sunWave.thickness
     );
 
-    // Second wave with different color
     ctx.strokeStyle = `${config.secondWaveColor}${opacityHex}`;
     drawWavyLine(
       dots.sun.x,
@@ -796,9 +1226,314 @@ function drawDots() {
       moonPhase,
       config.planetWave.thickness
     );
+
+    // Second moon waves (if enabled)
+    if (config.secondMoon.enabled) {
+      ctx.strokeStyle = `${config.syncLineColor}${opacityHex}`;
+      drawWavyLine(
+        dots.sun.x,
+        dots.sun.y,
+        dots.secondMoon.x,
+        dots.secondMoon.y,
+        config.sunWave.amplitude * transitionState.smoothFactor,
+        config.sunWave.wavelength,
+        sunPhase + Math.PI, // Offset phase for second moon
+        config.sunWave.thickness
+      );
+
+      ctx.strokeStyle = `${config.secondWaveColor}${opacityHex}`;
+      drawWavyLine(
+        dots.sun.x,
+        dots.sun.y,
+        dots.secondMoon.x,
+        dots.secondMoon.y,
+        config.planetWave.amplitude * transitionState.smoothFactor,
+        config.planetWave.wavelength,
+        moonPhase + Math.PI, // Offset phase for second moon
+        config.planetWave.thickness
+      );
+    }
   }
 
-  // Now draw the celestial bodies on top
+  // Draw particle flow
+  if (config.planetParticles.enabled) {
+    // Check alignment sync condition
+    const showParticles =
+      !config.planetParticles.alignmentSync || !isAlignmentDay;
+
+    if (showParticles) {
+      const particles = config.planetParticles.particles;
+      const planetToSunAngle = Math.atan2(
+        dots.sun.y - dots.planet.y,
+        dots.sun.x - dots.planet.x
+      );
+      const distance = Math.sqrt(
+        Math.pow(dots.sun.x - dots.planet.x, 2) +
+          Math.pow(dots.sun.y - dots.planet.y, 2)
+      );
+
+      // Calculate day progress for particle timing
+      const planetAngleNorm =
+        (dots.planet.angle - MONDAY_START) % (Math.PI * 2);
+      const dayProgress = (planetAngleNorm % DEGREES_PER_DAY) / DEGREES_PER_DAY;
+
+      // Calculate timing factor
+      let timingFactor = 1;
+      if (config.planetParticles.dayTiming) {
+        // Fade in during first 20% of day, fade out during last 20%
+        const fadeWindow = 0.2;
+        if (dayProgress < fadeWindow) {
+          timingFactor = dayProgress / fadeWindow;
+        } else if (dayProgress > 1 - fadeWindow) {
+          timingFactor = (1 - dayProgress) / fadeWindow;
+        }
+        timingFactor = Math.max(0, Math.min(1, timingFactor));
+      }
+
+      ctx.fillStyle = config.planetParticles.color;
+      particles.forEach((particle, index) => {
+        // Update particle progress
+        particle.progress += 0.001 * config.planetParticles.speed;
+        if (particle.progress >= 1) {
+          particle.progress = 0;
+          particle.offset = Math.random() * Math.PI * 2;
+        }
+
+        // Calculate particle position with dispersion
+        const particleDistance = distance * particle.progress;
+        const dispersionFactor = config.planetParticles.dispersion / 100; // Convert to 0-1 range
+        const wobbleAmplitude = 5 + 35 * dispersionFactor * particle.progress; // Smaller at origin, increases along path
+        const wobbleFrequency = 4 - 2 * dispersionFactor; // Reduce frequency as dispersion increases
+
+        const wobble =
+          Math.sin(
+            particle.progress * Math.PI * wobbleFrequency + particle.offset
+          ) *
+          wobbleAmplitude *
+          (1 + particle.progress * dispersionFactor); // Increase dispersion along the path
+
+        const particleX =
+          dots.planet.x +
+          Math.cos(planetToSunAngle) * particleDistance +
+          Math.cos(planetToSunAngle + Math.PI / 2) * wobble;
+        const particleY =
+          dots.planet.y +
+          Math.sin(planetToSunAngle) * particleDistance +
+          Math.sin(planetToSunAngle + Math.PI / 2) * wobble;
+
+        // Draw particle with fade out and timing factor
+        ctx.globalAlpha =
+          config.planetParticles.opacity *
+          (1 - particle.progress) *
+          timingFactor;
+        ctx.beginPath();
+        ctx.arc(
+          particleX,
+          particleY,
+          config.planetParticles.size,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Draw sun particles
+  if (config.sunParticles.enabled) {
+    // Check alignment sync condition
+    const showParticles = !config.sunParticles.alignmentSync || !isAlignmentDay;
+
+    if (showParticles) {
+      const particles = config.sunParticles.particles;
+      const sunToPlanetAngle = Math.atan2(
+        dots.planet.y - dots.sun.y,
+        dots.planet.x - dots.sun.x
+      );
+      const distance = Math.sqrt(
+        Math.pow(dots.planet.x - dots.sun.x, 2) +
+          Math.pow(dots.planet.y - dots.sun.y, 2)
+      );
+
+      // Calculate day progress for particle timing
+      const planetAngleNorm =
+        (dots.planet.angle - MONDAY_START) % (Math.PI * 2);
+      const dayProgress = (planetAngleNorm % DEGREES_PER_DAY) / DEGREES_PER_DAY;
+
+      // Calculate timing factor
+      let timingFactor = 1;
+      if (config.sunParticles.dayTiming) {
+        const fadeWindow = 0.2;
+        if (dayProgress < fadeWindow) {
+          timingFactor = dayProgress / fadeWindow;
+        } else if (dayProgress > 1 - fadeWindow) {
+          timingFactor = (1 - dayProgress) / fadeWindow;
+        }
+        timingFactor = Math.max(0, Math.min(1, timingFactor));
+      }
+
+      ctx.fillStyle = config.sunParticles.color;
+      particles.forEach((particle) => {
+        particle.progress += 0.001 * config.sunParticles.speed;
+        if (particle.progress >= 1) {
+          particle.progress = 0;
+          particle.offset = Math.random() * Math.PI * 2;
+        }
+
+        const particleDistance = distance * particle.progress;
+        const dispersionFactor = config.sunParticles.dispersion / 100;
+        const wobbleAmplitude = 5 + 35 * dispersionFactor * particle.progress;
+        const wobbleFrequency = 4 - 2 * dispersionFactor;
+
+        const wobble =
+          Math.sin(
+            particle.progress * Math.PI * wobbleFrequency + particle.offset
+          ) *
+          wobbleAmplitude *
+          (1 + particle.progress * dispersionFactor);
+
+        const particleX =
+          dots.sun.x +
+          Math.cos(sunToPlanetAngle) * particleDistance +
+          Math.cos(sunToPlanetAngle + Math.PI / 2) * wobble;
+        const particleY =
+          dots.sun.y +
+          Math.sin(sunToPlanetAngle) * particleDistance +
+          Math.sin(sunToPlanetAngle + Math.PI / 2) * wobble;
+
+        ctx.globalAlpha =
+          config.sunParticles.opacity * (1 - particle.progress) * timingFactor;
+        ctx.beginPath();
+        ctx.arc(particleX, particleY, config.sunParticles.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Draw radio waves
+  if (config.planetRadioWaves.enabled) {
+    const showWaves =
+      !config.planetRadioWaves.alignmentSync ||
+      (config.planetRadioWaves.alignmentSync &&
+        config.brainstreamDays.has(dayNumber));
+
+    if (showWaves) {
+      const planetToSunAngle = Math.atan2(
+        dots.sun.y - dots.planet.y,
+        dots.sun.x - dots.planet.x
+      );
+
+      let timingFactor = 1;
+      if (config.planetRadioWaves.dayTiming) {
+        const fadeWindow = 0.2;
+        if (dayProgress < fadeWindow) {
+          timingFactor = dayProgress / fadeWindow;
+        } else if (dayProgress > 1 - fadeWindow) {
+          timingFactor = (1 - dayProgress) / fadeWindow;
+        }
+        timingFactor = Math.max(0, Math.min(1, timingFactor));
+      }
+
+      // Create clipping region for the range
+      ctx.save();
+      ctx.beginPath();
+      const maxRadius = (config.radius * config.planetRadioWaves.range) / 100;
+      ctx.arc(dots.planet.x, dots.planet.y, maxRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Draw waves
+      ctx.strokeStyle = config.planetRadioWaves.color;
+      ctx.lineWidth = config.planetRadioWaves.thickness;
+
+      config.planetRadioWaves.waves.forEach((wave, index) => {
+        wave.radius += 0.5 * config.planetRadioWaves.speed;
+        if (wave.radius > config.radius) {
+          wave.radius = 0;
+        }
+
+        const arcAngle = (config.planetRadioWaves.arc * Math.PI) / 180;
+        const startAngle = planetToSunAngle - arcAngle / 2;
+        const endAngle = planetToSunAngle + arcAngle / 2;
+
+        ctx.beginPath();
+        ctx.globalAlpha =
+          config.planetRadioWaves.opacity *
+          (1 - wave.radius / config.radius) *
+          timingFactor;
+        ctx.arc(
+          dots.planet.x,
+          dots.planet.y,
+          wave.radius,
+          startAngle,
+          endAngle
+        );
+        ctx.stroke();
+      });
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  if (config.sunRadioWaves.enabled) {
+    const showWaves =
+      !config.sunRadioWaves.alignmentSync ||
+      (config.sunRadioWaves.alignmentSync &&
+        config.brainstreamDays.has(dayNumber));
+
+    if (showWaves) {
+      const sunToPlanetAngle = Math.atan2(
+        dots.planet.y - dots.sun.y,
+        dots.planet.x - dots.sun.x
+      );
+
+      let timingFactor = 1;
+      if (config.sunRadioWaves.dayTiming) {
+        const fadeWindow = 0.2;
+        if (dayProgress < fadeWindow) {
+          timingFactor = dayProgress / fadeWindow;
+        } else if (dayProgress > 1 - fadeWindow) {
+          timingFactor = (1 - dayProgress) / fadeWindow;
+        }
+        timingFactor = Math.max(0, Math.min(1, timingFactor));
+      }
+
+      // Create clipping region for the range
+      ctx.save();
+      ctx.beginPath();
+      const maxRadius = (config.radius * config.sunRadioWaves.range) / 100;
+      ctx.arc(dots.sun.x, dots.sun.y, maxRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Draw waves
+      ctx.strokeStyle = config.sunRadioWaves.color;
+      ctx.lineWidth = config.sunRadioWaves.thickness;
+
+      config.sunRadioWaves.waves.forEach((wave, index) => {
+        wave.radius += 0.5 * config.sunRadioWaves.speed;
+        if (wave.radius > config.radius) {
+          wave.radius = 0;
+        }
+
+        const arcAngle = (config.sunRadioWaves.arc * Math.PI) / 180;
+        const startAngle = sunToPlanetAngle - arcAngle / 2;
+        const endAngle = sunToPlanetAngle + arcAngle / 2;
+
+        ctx.beginPath();
+        ctx.globalAlpha =
+          config.sunRadioWaves.opacity *
+          (1 - wave.radius / config.radius) *
+          timingFactor;
+        ctx.arc(dots.sun.x, dots.sun.y, wave.radius, startAngle, endAngle);
+        ctx.stroke();
+      });
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Draw celestial bodies
   // Draw sun with heartbeat
   const sunScale = config.sunHeartbeat.enabled
     ? calculateHeartbeatScale(config.sunHeartbeat.beatsPerDay)
@@ -827,7 +1562,7 @@ function drawDots() {
   ctx.fillStyle = config.dotColors[1];
   ctx.fill();
 
-  // Draw moon with interpolated size and color
+  // Draw first moon with interpolated size and color
   const baseSize = dots.moon.size;
   const targetSize =
     baseSize * (config.GOLDEN_RATIO * config.moonSizeMultiplier);
@@ -844,6 +1579,20 @@ function drawDots() {
   ctx.arc(dots.moon.x, dots.moon.y, currentSize, 0, Math.PI * 2);
   ctx.fillStyle = currentColor;
   ctx.fill();
+
+  // Draw second moon if enabled
+  if (config.secondMoon.enabled) {
+    const secondMoonColor = lerpColor(
+      config.secondMoon.color,
+      config.secondMoon.activeColor,
+      transitionState.smoothFactor
+    );
+
+    ctx.beginPath();
+    ctx.arc(dots.secondMoon.x, dots.secondMoon.y, currentSize, 0, Math.PI * 2);
+    ctx.fillStyle = secondMoonColor;
+    ctx.fill();
+  }
 }
 
 function drawCommunicationLines() {
@@ -965,6 +1714,14 @@ function loadPreset(file) {
       // Update config
       Object.assign(config, preset.config);
 
+      // Update checkboxes for brainstream days
+      document
+        .querySelectorAll(".brainstream-day-checkbox")
+        .forEach((checkbox) => {
+          const day = parseInt(checkbox.value);
+          checkbox.checked = config.brainstreamDays.has(day);
+        });
+
       // Update dots
       Object.assign(dots.planet, preset.dots.planet);
       Object.assign(dots.moon, preset.dots.moon);
@@ -1068,4 +1825,53 @@ function initializeAllValueDisplays() {
   updateValueDisplay("sunHeartbeatsPerDay", 1.0, "/day");
   updateValueDisplay("planetHeartbeatsPerDay", 1.0, "/day");
   // ... rest of initializations ...
+}
+
+// Add after initializeControls function
+function initializeParticles() {
+  config.planetParticles.particles = [];
+  for (let i = 0; i < config.planetParticles.amount; i++) {
+    config.planetParticles.particles.push({
+      progress: Math.random(), // Random initial progress (0-1)
+      offset: Math.random() * Math.PI * 2, // Random angle offset
+    });
+  }
+}
+
+// Add after initializeParticles function
+function initializeSunParticles() {
+  config.sunParticles.particles = [];
+  for (let i = 0; i < config.sunParticles.amount; i++) {
+    config.sunParticles.particles.push({
+      progress: Math.random(), // Random initial progress (0-1)
+      offset: Math.random() * Math.PI * 2, // Random angle offset
+    });
+  }
+}
+
+// Add after initializeSunParticles function
+function initializePlanetRadioWaves() {
+  config.planetRadioWaves.waves = [];
+  const maxRadius = config.radius; // Use radar radius instead of canvas diagonal
+  const numWaves = Math.ceil(maxRadius / config.planetRadioWaves.spacing);
+
+  for (let i = 0; i < numWaves; i++) {
+    config.planetRadioWaves.waves.push({
+      radius: i * config.planetRadioWaves.spacing,
+      opacity: 1,
+    });
+  }
+}
+
+function initializeSunRadioWaves() {
+  config.sunRadioWaves.waves = [];
+  const maxRadius = config.radius; // Use radar radius instead of canvas diagonal
+  const numWaves = Math.ceil(maxRadius / config.sunRadioWaves.spacing);
+
+  for (let i = 0; i < numWaves; i++) {
+    config.sunRadioWaves.waves.push({
+      radius: i * config.sunRadioWaves.spacing,
+      opacity: 1,
+    });
+  }
 }

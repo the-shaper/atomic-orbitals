@@ -30,12 +30,11 @@
             />
           </div>
           <h5 data-panel="planet-controls" class="active">Planet Controls</h5>
+          <h5 data-panel="sun-controls">Sun Controls</h5>
           <h5 data-panel="moon-controls">Moon Controls</h5>
           <h5 data-panel="radar-controls">Radar UI Controls</h5>
           <h5 data-panel="alignment-days">Alignment Days</h5>
           <h5 data-panel="gravity-effect">Gravity Effect</h5>
-          <h5 data-panel="heartbeat-animations">Heartbeat Animations</h5>
-          <h5 data-panel="moon-alignment">Moon Alignment Effects</h5>
           <h5 data-panel="color-controls">Color Controls</h5>
         </div>
 
@@ -46,106 +45,926 @@
               <span class="accordion-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="control-item">
-                <label>Orbit Radius (Ring Level: 1-4)</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="planetOrbitRadius"
-                    min="1"
-                    max="4"
-                    step="0.1"
-                    value="3"
-                  />
-                  <span class="value-display" id="planetOrbitRadiusValue"
-                    >3.0</span
-                  >
+              <div class="control-section">
+                <h4>Orbit & Size</h4>
+                <div class="control-item">
+                  <label>Orbit Radius (Ring Level: 1-4)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetOrbitRadius"
+                      min="1"
+                      max="4"
+                      step="0.1"
+                      value="3"
+                    />
+                    <span class="value-display" id="planetOrbitRadiusValue"
+                      >3.0</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Planet Size (×1.618)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetSize"
+                      min="1"
+                      max="5"
+                      step="1"
+                      value="1"
+                    />
+                    <span class="value-display" id="planetSizeValue">1.0×</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Rotation Velocity (×1.618)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetPeriod"
+                      min="1"
+                      max="5"
+                      step="1"
+                      value="1"
+                    />
+                    <span class="value-display" id="planetPeriodValue"
+                      >1.618×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Direction</label>
+                  <select id="planetDirection">
+                    <option value="1">Clockwise</option>
+                    <option value="-1">Counterclockwise</option>
+                  </select>
                 </div>
               </div>
-              <div class="control-item">
-                <label>Rotation Velocity (×1.618)</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="planetPeriod"
-                    min="1"
-                    max="5"
-                    step="1"
-                    value="1"
-                  />
-                  <span class="value-display" id="planetPeriodValue"
-                    >1.618×</span
-                  >
+
+              <div class="control-section">
+                <h4>Particle Flow</h4>
+                <div class="control-item">
+                  <label>Enable Particle Flow</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="particleFlowEnabled" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Color</label>
+                  <input type="color" id="particleColor" value="#2b4d59" />
+                </div>
+                <div class="control-item">
+                  <label>Particle Size</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="particleSize"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="3"
+                    />
+                    <span class="value-display" id="particleSizeValue"
+                      >3px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Amount</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="particleAmount"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="30"
+                    />
+                    <span class="value-display" id="particleAmountValue"
+                      >30</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Flow Speed</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="particleSpeed"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="5"
+                    />
+                    <span class="value-display" id="particleSpeedValue"
+                      >5×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Opacity</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="particleOpacity"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="70"
+                    />
+                    <span class="value-display" id="particleOpacityValue"
+                      >70%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Dispersion</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="particleDispersion"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value="30"
+                    />
+                    <span class="value-display" id="particleDispersionValue"
+                      >30%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Day-based Timing</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="particleDayTiming" checked />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Alignment Sync</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="particleAlignmentSync" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
                 </div>
               </div>
-              <div class="control-item">
-                <label>Direction</label>
-                <select id="planetDirection">
-                  <option value="1">Clockwise</option>
-                  <option value="-1">Counterclockwise</option>
-                </select>
+
+              <div class="control-section">
+                <h4>Radio Waves</h4>
+                <div class="control-item">
+                  <label>Enable Radio Waves</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="planetRadioWavesEnabled" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Color</label>
+                  <input
+                    type="color"
+                    id="planetRadioWaveColor"
+                    value="#2b4d59"
+                  />
+                </div>
+                <div class="control-item">
+                  <label>Wave Speed</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveSpeed"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="3"
+                    />
+                    <span class="value-display" id="planetRadioWaveSpeedValue"
+                      >3×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Spacing</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveSpacing"
+                      min="10"
+                      max="50"
+                      step="5"
+                      value="20"
+                    />
+                    <span class="value-display" id="planetRadioWaveSpacingValue"
+                      >20px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Thickness</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveThickness"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      value="1.5"
+                    />
+                    <span
+                      class="value-display"
+                      id="planetRadioWaveThicknessValue"
+                      >1.5px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Arc (degrees)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveArc"
+                      min="30"
+                      max="180"
+                      step="15"
+                      value="90"
+                    />
+                    <span class="value-display" id="planetRadioWaveArcValue"
+                      >90°</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Range (%)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveRange"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="100"
+                    />
+                    <span class="value-display" id="planetRadioWaveRangeValue"
+                      >100%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Opacity</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="planetRadioWaveOpacity"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="70"
+                    />
+                    <span class="value-display" id="planetRadioWaveOpacityValue"
+                      >70%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Day-based Timing</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="planetRadioWaveDayTiming"
+                        checked
+                      />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Alignment Sync</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="planetRadioWaveAlignmentSync"
+                      />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          <div id="sun-controls" class="control-group">
+            <div class="accordion-header">
+              <h3>Sun Controls</h3>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="control-item">
+                <label>Sun Size</label>
+                <div class="slider-with-value">
+                  <input
+                    type="range"
+                    id="sunSize"
+                    min="1"
+                    max="5"
+                    value="1"
+                    step="1"
+                  />
+                  <span id="sunSizeValue">1.0×</span>
+                </div>
+              </div>
+              <div class="control-item">
+                <label>Sun Color</label>
+                <input type="color" id="sunColor" value="#ffb347" />
+              </div>
+              <div class="control-item">
+                <label>Sun Heartbeat</label>
+                <div class="heartbeat-switch-container">
+                  <label class="switch">
+                    <input type="checkbox" id="sunHeartbeatEnabled" checked />
+                    <span class="slider round"></span>
+                  </label>
+                  <span class="switch-label">Enable</span>
+                </div>
+                <div class="slider-with-value">
+                  <input
+                    type="range"
+                    id="sunHeartbeatsPerDay"
+                    min="1"
+                    max="9"
+                    step="1"
+                    value="1"
+                  />
+                  <span class="value-display" id="sunHeartbeatsPerDayValue"
+                    >1.0/day</span
+                  >
+                </div>
+              </div>
+
+              <div class="control-section">
+                <h4>Particle Flow</h4>
+                <div class="control-item">
+                  <label>Enable Particle Flow</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="sunParticleFlowEnabled" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Color</label>
+                  <input type="color" id="sunParticleColor" value="#ffb347" />
+                </div>
+                <div class="control-item">
+                  <label>Particle Size</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunParticleSize"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="3"
+                    />
+                    <span class="value-display" id="sunParticleSizeValue"
+                      >3px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Amount</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunParticleAmount"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="30"
+                    />
+                    <span class="value-display" id="sunParticleAmountValue"
+                      >30</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Flow Speed</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunParticleSpeed"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="5"
+                    />
+                    <span class="value-display" id="sunParticleSpeedValue"
+                      >5×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Opacity</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunParticleOpacity"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="70"
+                    />
+                    <span class="value-display" id="sunParticleOpacityValue"
+                      >70%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Particle Dispersion</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunParticleDispersion"
+                      min="0"
+                      max="100"
+                      step="5"
+                      value="30"
+                    />
+                    <span class="value-display" id="sunParticleDispersionValue"
+                      >30%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Day-based Timing</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="sunParticleDayTiming"
+                        checked
+                      />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Alignment Sync</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="sunParticleAlignmentSync" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-section">
+                <h4>Radio Waves</h4>
+                <div class="control-item">
+                  <label>Enable Radio Waves</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="sunRadioWavesEnabled" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Color</label>
+                  <input type="color" id="sunRadioWaveColor" value="#ffb347" />
+                </div>
+                <div class="control-item">
+                  <label>Wave Speed</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveSpeed"
+                      min="1"
+                      max="10"
+                      step="1"
+                      value="3"
+                    />
+                    <span class="value-display" id="sunRadioWaveSpeedValue"
+                      >3×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Spacing</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveSpacing"
+                      min="10"
+                      max="50"
+                      step="5"
+                      value="20"
+                    />
+                    <span class="value-display" id="sunRadioWaveSpacingValue"
+                      >20px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Thickness</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveThickness"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      value="1.5"
+                    />
+                    <span class="value-display" id="sunRadioWaveThicknessValue"
+                      >1.5px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Arc (degrees)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveArc"
+                      min="30"
+                      max="180"
+                      step="15"
+                      value="90"
+                    />
+                    <span class="value-display" id="sunRadioWaveArcValue"
+                      >90°</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Range (%)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveRange"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="100"
+                    />
+                    <span class="value-display" id="sunRadioWaveRangeValue"
+                      >100%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Wave Opacity</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="sunRadioWaveOpacity"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value="70"
+                    />
+                    <span class="value-display" id="sunRadioWaveOpacityValue"
+                      >70%</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Day-based Timing</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input
+                        type="checkbox"
+                        id="sunRadioWaveDayTiming"
+                        checked
+                      />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Alignment Sync</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="sunRadioWaveAlignmentSync" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div id="moon-controls" class="control-group">
             <div class="accordion-header">
               <h3>Moon Controls</h3>
               <span class="accordion-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="control-item">
-                <label>Orbit Radius</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="moonOrbitRadius"
-                    min="20"
-                    max="80"
-                    step="5"
-                    value="40"
-                  />
-                  <span class="value-display" id="moonOrbitRadiusValue"
-                    >40px</span
-                  >
+              <div class="control-section">
+                <h4>First Moon</h4>
+                <div class="control-item">
+                  <label>Orbit Radius (- CCW / + CW)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="moonOrbitRadius"
+                      min="-400"
+                      max="400"
+                      step="100"
+                      value="100"
+                    />
+                    <span class="value-display" id="moonOrbitRadiusValue"
+                      >100px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Orbit Period (rotations per day)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="moonPeriod"
+                      min="0.5"
+                      max="6"
+                      step="0.5"
+                      value="2"
+                    />
+                    <span class="value-display" id="moonPeriodValue"
+                      >2.0/day</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Direction</label>
+                  <select id="moonDirection">
+                    <option value="1">Clockwise</option>
+                    <option value="-1">Counterclockwise</option>
+                  </select>
+                </div>
+                <div class="control-item">
+                  <label>Starting Position (degrees)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="moonStartingPosition"
+                      min="0"
+                      max="360"
+                      step="15"
+                      value="0"
+                    />
+                    <span class="value-display" id="moonStartingPositionValue"
+                      >0°</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Moon Color</label>
+                  <input type="color" id="moonColor" value="#a5a5a5" />
+                </div>
+                <div class="control-item">
+                  <label>Active Moon Color</label>
+                  <input type="color" id="activeMoonColor" value="#ff6b35" />
                 </div>
               </div>
-              <div class="control-item">
-                <label>Orbit Period (rotations per day)</label>
-                <div class="slider-with-value">
+
+              <div class="control-section">
+                <h4>Second Moon</h4>
+                <div class="control-item">
+                  <label>Enable Second Moon</label>
+                  <div class="heartbeat-switch-container">
+                    <label class="switch">
+                      <input type="checkbox" id="secondMoonEnabled" />
+                      <span class="slider round"></span>
+                    </label>
+                    <span class="switch-label">Enable</span>
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Moon Color</label>
+                  <input type="color" id="secondMoonColor" value="#808080" />
+                </div>
+                <div class="control-item">
+                  <label>Active Moon Color</label>
                   <input
-                    type="range"
-                    id="moonPeriod"
-                    min="0.5"
-                    max="6"
-                    step="0.5"
-                    value="2"
+                    type="color"
+                    id="secondMoonActiveColor"
+                    value="#ff9b35"
                   />
-                  <span class="value-display" id="moonPeriodValue"
-                    >2.0/day</span
-                  >
                 </div>
               </div>
-              <div class="control-item">
-                <label>Direction</label>
-                <select id="moonDirection">
-                  <option value="1">Clockwise</option>
-                  <option value="-1">Counterclockwise</option>
-                </select>
+
+              <div class="control-section">
+                <h4>Wave Controls</h4>
+                <div class="wave-controls">
+                  <h5>First Wave</h5>
+                  <div class="control-item">
+                    <label>Wave Color</label>
+                    <input type="color" id="syncLineColor" value="#ff6b35" />
+                  </div>
+                  <div class="control-item">
+                    <label>Amplitude</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="sunWaveAmplitude"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value="5"
+                      />
+                      <span class="value-display" id="sunWaveAmplitudeValue"
+                        >5px</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Speed</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="sunWaveSpeed"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value="3"
+                      />
+                      <span class="value-display" id="sunWaveSpeedValue"
+                        >3×</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Wavelength</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="sunWaveLength"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value="2"
+                      />
+                      <span class="value-display" id="sunWaveLengthValue"
+                        >2.0×</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Thickness</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="sunWaveThickness"
+                        min="1"
+                        max="5"
+                        step="0.5"
+                        value="2"
+                      />
+                      <span class="value-display" id="sunWaveThicknessValue"
+                        >2.0px</span
+                      >
+                    </div>
+                  </div>
+
+                  <h5>Second Wave</h5>
+                  <div class="control-item">
+                    <label>Wave Color</label>
+                    <input type="color" id="secondWaveColor" value="#2b4d59" />
+                  </div>
+                  <div class="control-item">
+                    <label>Amplitude</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="planetWaveAmplitude"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value="5"
+                      />
+                      <span class="value-display" id="planetWaveAmplitudeValue"
+                        >5px</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Speed</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="planetWaveSpeed"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value="3"
+                      />
+                      <span class="value-display" id="planetWaveSpeedValue"
+                        >3×</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Wavelength</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="planetWaveLength"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value="2"
+                      />
+                      <span class="value-display" id="planetWaveLengthValue"
+                        >2.0×</span
+                      >
+                    </div>
+                  </div>
+                  <div class="control-item">
+                    <label>Thickness</label>
+                    <div class="slider-with-value">
+                      <input
+                        type="range"
+                        id="planetWaveThickness"
+                        min="1"
+                        max="5"
+                        step="0.5"
+                        value="2"
+                      />
+                      <span class="value-display" id="planetWaveThicknessValue"
+                        >2.0px</span
+                      >
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="control-item">
-                <label>Starting Position (degrees)</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="moonStartingPosition"
-                    min="0"
-                    max="360"
-                    step="15"
-                    value="0"
-                  />
-                  <span class="value-display" id="moonStartingPositionValue"
-                    >0°</span
-                  >
+
+              <div class="control-section">
+                <h4>Alignment Effects</h4>
+                <div class="control-item">
+                  <label>Size Multiplier (×1.618)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="moonSizeMultiplier"
+                      min="1"
+                      max="4"
+                      step="1"
+                      value="1"
+                    />
+                    <span class="value-display" id="moonSizeMultiplierValue"
+                      >1.618×</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Transition Curve</label>
+                  <select id="transitionCurve">
+                    <option value="linear">Linear</option>
+                    <option value="easeInOut" selected>Ease In/Out</option>
+                    <option value="elastic">Elastic</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
+                </div>
+                <div class="control-item">
+                  <label>Transition Duration (% of day)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="transitionDuration"
+                      min="10"
+                      max="50"
+                      step="5"
+                      value="20"
+                    />
+                    <span class="value-display" id="transitionDurationValue"
+                      >20%</span
+                    >
+                  </div>
                 </div>
               </div>
             </div>
@@ -156,18 +975,135 @@
               <span class="accordion-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="control-item">
-                <label>Rotation (degrees)</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="radarRotation"
-                    min="0"
-                    max="360"
-                    step="15"
-                    value="0"
-                  />
-                  <span class="value-display" id="radarRotationValue">0°</span>
+              <div class="control-section">
+                <h4>Radar Grid</h4>
+                <div class="control-item">
+                  <label>Rotation (degrees)</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="radarRotation"
+                      min="0"
+                      max="360"
+                      step="15"
+                      value="0"
+                    />
+                    <span class="value-display" id="radarRotationValue"
+                      >0°</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Line Thickness</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="radarLineThickness"
+                      min="0.5"
+                      max="3"
+                      step="0.5"
+                      value="1"
+                    />
+                    <span class="value-display" id="radarLineThicknessValue"
+                      >1.0px</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div class="control-section">
+                <h4>Typography</h4>
+                <div class="control-item">
+                  <label>Font Family</label>
+                  <select id="radarFontFamily">
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="system-ui">System UI</option>
+                  </select>
+                </div>
+                <div class="control-item">
+                  <label>Font Size</label>
+                  <div class="slider-with-value">
+                    <input
+                      type="range"
+                      id="radarFontSize"
+                      min="12"
+                      max="32"
+                      step="2"
+                      value="20"
+                    />
+                    <span class="value-display" id="radarFontSizeValue"
+                      >20px</span
+                    >
+                  </div>
+                </div>
+                <div class="control-item">
+                  <label>Text Color</label>
+                  <input type="color" id="textColor" value="#cce0cc" />
+                </div>
+              </div>
+
+              <div class="control-section">
+                <h4>Day Labels</h4>
+                <div class="day-labels-grid">
+                  <div class="control-item">
+                    <label>Monday</label>
+                    <input
+                      type="text"
+                      id="dayLabel0"
+                      value="MON"
+                      maxlength="3"
+                    />
+                  </div>
+                  <div class="control-item">
+                    <label>Tuesday</label>
+                    <input
+                      type="text"
+                      id="dayLabel1"
+                      value="TUE"
+                      maxlength="3"
+                    />
+                  </div>
+                  <div class="control-item">
+                    <label>Wednesday</label>
+                    <input
+                      type="text"
+                      id="dayLabel2"
+                      value="WED"
+                      maxlength="3"
+                    />
+                  </div>
+                  <div class="control-item">
+                    <label>Thursday</label>
+                    <input
+                      type="text"
+                      id="dayLabel3"
+                      value="THU"
+                      maxlength="3"
+                    />
+                  </div>
+                  <div class="control-item">
+                    <label>Friday</label>
+                    <input
+                      type="text"
+                      id="dayLabel4"
+                      value="FRI"
+                      maxlength="3"
+                    />
+                  </div>
+                  <div class="control-item">
+                    <label>Saturday</label>
+                    <input
+                      type="text"
+                      id="dayLabel5"
+                      value="SAT"
+                      maxlength="3"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -178,41 +1114,118 @@
               <span class="accordion-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="control-item days-selection">
-                <label
-                  ><input type="checkbox" value="0" class="day-checkbox" />
-                  Monday</label
-                >
-                <label
-                  ><input
-                    type="checkbox"
-                    value="1"
-                    class="day-checkbox"
-                    checked
+              <div class="control-item">
+                <label>Alignment Slowdown Intensity</label>
+                <div class="slider-with-value">
+                  <input
+                    type="range"
+                    id="alignmentSlowdownIntensity"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value="0.5"
                   />
-                  Tuesday</label
-                >
-                <label
-                  ><input type="checkbox" value="2" class="day-checkbox" />
-                  Wednesday</label
-                >
-                <label
-                  ><input type="checkbox" value="3" class="day-checkbox" />
-                  Thursday</label
-                >
-                <label
-                  ><input
-                    type="checkbox"
-                    value="4"
-                    class="day-checkbox"
-                    checked
-                  />
-                  Friday</label
-                >
-                <label
-                  ><input type="checkbox" value="5" class="day-checkbox" />
-                  Saturday</label
-                >
+                  <span
+                    class="value-display"
+                    id="alignmentSlowdownIntensityValue"
+                    >0.5×</span
+                  >
+                </div>
+              </div>
+              <div class="control-section">
+                <h4>Wave Alignment Days</h4>
+                <div class="control-item days-selection">
+                  <label
+                    ><input type="checkbox" value="0" class="day-checkbox" />
+                    Monday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="1"
+                      class="day-checkbox"
+                      checked
+                    />
+                    Tuesday</label
+                  >
+                  <label
+                    ><input type="checkbox" value="2" class="day-checkbox" />
+                    Wednesday</label
+                  >
+                  <label
+                    ><input type="checkbox" value="3" class="day-checkbox" />
+                    Thursday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="4"
+                      class="day-checkbox"
+                      checked
+                    />
+                    Friday</label
+                  >
+                  <label
+                    ><input type="checkbox" value="5" class="day-checkbox" />
+                    Saturday</label
+                  >
+                </div>
+              </div>
+
+              <div class="control-section">
+                <h4>Brainstream Sync Days</h4>
+                <div class="control-item days-selection">
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="0"
+                      class="brainstream-day-checkbox"
+                    />
+                    Monday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="1"
+                      class="brainstream-day-checkbox"
+                    />
+                    Tuesday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="2"
+                      class="brainstream-day-checkbox"
+                      checked
+                    />
+                    Wednesday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="3"
+                      class="brainstream-day-checkbox"
+                    />
+                    Thursday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="4"
+                      class="brainstream-day-checkbox"
+                    />
+                    Friday</label
+                  >
+                  <label
+                    ><input
+                      type="checkbox"
+                      value="5"
+                      class="brainstream-day-checkbox"
+                      checked
+                    />
+                    Saturday</label
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -257,29 +1270,6 @@
             </div>
             <div class="accordion-content">
               <div class="control-item">
-                <label>Sun Heartbeat</label>
-                <div class="heartbeat-switch-container">
-                  <label class="switch">
-                    <input type="checkbox" id="sunHeartbeatEnabled" checked />
-                    <span class="slider round"></span>
-                  </label>
-                  <span class="switch-label">Enable</span>
-                </div>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="sunHeartbeatsPerDay"
-                    min="1"
-                    max="9"
-                    step="1"
-                    value="1"
-                  />
-                  <span class="value-display" id="sunHeartbeatsPerDayValue"
-                    >1.0/day</span
-                  >
-                </div>
-              </div>
-              <div class="control-item">
                 <label>Planet Heartbeat</label>
                 <div class="heartbeat-switch-container">
                   <label class="switch">
@@ -314,22 +1304,6 @@
               <span class="accordion-icon">▼</span>
             </div>
             <div class="accordion-content">
-              <div class="control-item">
-                <label>Size Multiplier (×1.618)</label>
-                <div class="slider-with-value">
-                  <input
-                    type="range"
-                    id="moonSizeMultiplier"
-                    min="1"
-                    max="4"
-                    step="1"
-                    value="1"
-                  />
-                  <span class="value-display" id="moonSizeMultiplierValue"
-                    >1.618×</span
-                  >
-                </div>
-              </div>
               <div class="control-item">
                 <label>Transition Curve</label>
                 <select id="transitionCurve">
@@ -562,16 +1536,8 @@
                 <input type="color" id="textColor" value="#cce0cc" />
               </div>
               <div class="control-item">
-                <label>Sun Color</label>
-                <input type="color" id="sunColor" value="#ffb347" />
-              </div>
-              <div class="control-item">
                 <label>Planet Color</label>
                 <input type="color" id="planetColor" value="#2b4d59" />
-              </div>
-              <div class="control-item">
-                <label>Moon Color</label>
-                <input type="color" id="moonColor" value="#a5a5a5" />
               </div>
             </div>
           </div>
