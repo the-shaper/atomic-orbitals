@@ -35,8 +35,7 @@ An interactive visualization of atomic orbitals using HTML5 Canvas. This project
 
 ## Technologies Used
 
-- HTML5
-- CSS3
-- JavaScript (ES6+)
-- Canvas API
-- Anime.js for animations
+- HTML5 Canvas for rendering
+- Vanilla JavaScript (ES6+) for animations and logic
+- CSS3 for styling and layout
+- RequestAnimationFrame API for smooth animations

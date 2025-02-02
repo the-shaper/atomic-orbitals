@@ -1,44 +1,16 @@
+// Constants
+const MILLISECONDS_PER_DAY = 1000; // 1 second represents one day for smooth animation
+const MONDAY_START = -Math.PI / 2;
+const DEGREES_PER_DAY = (Math.PI * 2) / 6;
+const BASE_PLANET_SPEED = 2000; // Doubled from 1000 to make base speed half as fast
+
+// Get canvas and context
 const canvas = document.getElementById("radarCanvas");
 const ctx = canvas.getContext("2d");
 
 // Set initial canvas size
 canvas.width = 1000;
 canvas.height = 1000;
-
-// Add resize observer for responsive canvas
-const resizeObserver = new ResizeObserver((entries) => {
-  // Use requestAnimationFrame to throttle updates
-  requestAnimationFrame(() => {
-    for (const entry of entries) {
-      const container = entry.target;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      const size = Math.min(width, height);
-
-      // Only update if size has actually changed
-      if (canvas.width !== size * 2) {
-        // Set canvas resolution (2x for retina displays)
-        canvas.width = size * 2;
-        canvas.height = size * 2;
-
-        // Update config to maintain proportions
-        config.centerX = canvas.width / 2;
-        config.centerY = canvas.height / 2;
-        config.radius = canvas.width * 0.4; // Keep radius at 40% of canvas width
-
-        // Update planet radius to maintain ring level 3
-        dots.planet.radius = (config.radius / config.rings) * 3;
-
-        // Update sun position to stay centered
-        dots.sun.x = config.centerX;
-        dots.sun.y = config.centerY;
-      }
-    }
-  });
-});
-
-// Observe the radar container
-resizeObserver.observe(document.querySelector(".radar-container"));
 
 // Configuration
 const config = {
@@ -148,17 +120,25 @@ const config = {
   lineThickness: 1,
   fontSize: 20,
   fontFamily: "Arial",
+  sunspots: {
+    enabled: false,
+    spots: [], // Will store active sunspots
+    size: 4,
+    attraction: 0.5,
+    energy: 1.0,
+    color: "#ff4500",
+    lastAlignmentTime: 0,
+    alignmentCooldown: MILLISECONDS_PER_DAY,
+    baseSize: 4,
+    spotsPerDay: 1,
+    totalMass: 0,
+    spotsCreatedInCurrentDay: 0, // Track spots created in current day
+    lastDayNumber: -1, // Track the current day number
+  },
 };
-
-// Update the MILLISECONDS_PER_DAY constant to represent one day (1/6 of the radar)
-const MILLISECONDS_PER_DAY = 1000; // 1 second represents one day for smooth animation
 
 // Calculate the radius for the third ring
 const thirdRingRadius = (config.radius / config.rings) * 3;
-
-// Calculate starting angles for alignment
-const MONDAY_START = -Math.PI / 2;
-const DEGREES_PER_DAY = (Math.PI * 2) / 6;
 
 // Dot objects (celestial bodies)
 const dots = {
@@ -198,8 +178,40 @@ const dots = {
 // Communication lines state
 const communicationLines = Array(6).fill(false);
 
-// Update the base speed constant
-const BASE_PLANET_SPEED = 1000; // Base milliseconds for one complete orbit
+// Add resize observer for responsive canvas
+const resizeObserver = new ResizeObserver((entries) => {
+  // Use requestAnimationFrame to throttle updates
+  requestAnimationFrame(() => {
+    for (const entry of entries) {
+      const container = entry.target;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const size = Math.min(width, height);
+
+      // Only update if size has actually changed
+      if (canvas.width !== size * 2) {
+        // Set canvas resolution (2x for retina displays)
+        canvas.width = size * 2;
+        canvas.height = size * 2;
+
+        // Update config to maintain proportions
+        config.centerX = canvas.width / 2;
+        config.centerY = canvas.height / 2;
+        config.radius = canvas.width * 0.4; // Keep radius at 40% of canvas width
+
+        // Update planet radius to maintain ring level 3
+        dots.planet.radius = (config.radius / config.rings) * 3;
+
+        // Update sun position to stay centered
+        dots.sun.x = config.centerX;
+        dots.sun.y = config.centerY;
+      }
+    }
+  });
+});
+
+// Observe the radar container
+resizeObserver.observe(document.querySelector(".radar-container"));
 
 // Control handlers
 function initializeControls() {
@@ -213,8 +225,8 @@ function initializeControls() {
 
   document.getElementById("planetPeriod").addEventListener("input", (e) => {
     const step = parseInt(e.target.value);
-    // Calculate velocity multiplier: 1x, 1.618x, 2.618x, 4.236x, 6.854x
-    const velocityMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+    // Calculate velocity multiplier: 0.5x, 0.809x, 1.309x, 2.118x, 3.427x
+    const velocityMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1) * 0.5;
 
     // Faster speed = smaller period
     dots.planet.period = BASE_PLANET_SPEED / velocityMultiplier;
@@ -503,6 +515,22 @@ function initializeControls() {
       config.secondMoon.activeColor = e.target.value;
     });
 
+  // Add second moon orbit controls
+  document
+    .getElementById("secondMoonOrbitRadius")
+    .addEventListener("input", (e) => {
+      const radius = parseInt(e.target.value);
+      dots.secondMoon.orbitRadius = radius;
+      updateValueDisplay("secondMoonOrbitRadius", radius, "px");
+    });
+
+  document.getElementById("secondMoonPeriod").addEventListener("input", (e) => {
+    const rotationsPerDay = parseFloat(e.target.value);
+    // Calculate period in milliseconds for the specified number of rotations per day
+    dots.secondMoon.period = MILLISECONDS_PER_DAY / rotationsPerDay;
+    updateValueDisplay("secondMoonPeriod", rotationsPerDay, "/day");
+  });
+
   // Planet size control
   document.getElementById("planetSize").addEventListener("input", (e) => {
     const step = parseInt(e.target.value);
@@ -789,6 +817,42 @@ function initializeControls() {
     });
   }
 
+  // Sunspots controls
+  document.getElementById("sunspotsEnabled").addEventListener("change", (e) => {
+    config.sunspots.enabled = e.target.checked;
+    if (!e.target.checked) {
+      config.sunspots.spots = []; // Clear spots when disabled
+    }
+  });
+
+  document.getElementById("sunspotSize").addEventListener("input", (e) => {
+    const step = parseInt(e.target.value);
+    // Calculate size using golden ratio: 1x, 1.618x, 2.618x, 4.236x, 6.854x
+    const sizeMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+    config.sunspots.size = config.sunspots.baseSize * sizeMultiplier;
+    updateValueDisplay("sunspotSize", sizeMultiplier.toFixed(3), "×");
+  });
+
+  document
+    .getElementById("sunspotAttraction")
+    .addEventListener("input", (e) => {
+      config.sunspots.attraction = parseFloat(e.target.value);
+      updateValueDisplay("sunspotAttraction", e.target.value);
+    });
+
+  document.getElementById("sunspotEnergy").addEventListener("input", (e) => {
+    config.sunspots.energy = parseFloat(e.target.value);
+    updateValueDisplay("sunspotEnergy", e.target.value, "×");
+  });
+
+  document.getElementById("sunspotColor").addEventListener("input", (e) => {
+    config.sunspots.color = e.target.value;
+  });
+
+  document.getElementById("clearSunspots").addEventListener("click", () => {
+    config.sunspots.spots = [];
+  });
+
   // Initialize all value displays
   updateValueDisplay("planetOrbitRadius", 3.0);
   updateValueDisplay("planetPeriod", 1.0, "/day");
@@ -806,6 +870,12 @@ function initializeControls() {
 
   // Initialize accordion
   initializeAccordion();
+
+  // Add new control handler
+  document.getElementById("spotsPerDay").addEventListener("input", (e) => {
+    config.sunspots.spotsPerDay = parseInt(e.target.value);
+    updateValueDisplay("spotsPerDay", e.target.value);
+  });
 }
 
 function drawBackground() {
@@ -1076,6 +1146,51 @@ function calculateTransitionState(dayProgress, dayNumber) {
   // Apply the selected transition curve to create a single smooth factor
   const curveFunction = getTransitionCurve(config.transitionCurve);
   const smoothFactor = curveFunction(transitionFactor * alignmentFactor);
+
+  // Reset spots counter when entering a new day
+  if (dayNumber !== config.sunspots.lastDayNumber) {
+    config.sunspots.spotsCreatedInCurrentDay = 0;
+    config.sunspots.lastDayNumber = dayNumber;
+  }
+
+  // Create sunspots during alignment if quota not met
+  if (
+    config.sunspots.enabled &&
+    smoothFactor > 0.95 &&
+    config.sunspots.spotsCreatedInCurrentDay < config.sunspots.spotsPerDay &&
+    config.alignmentDays.has(dayNumber)
+  ) {
+    // Only create spots on alignment days
+
+    // Calculate how far we are into the current day (0 to 1)
+    const dayProgressNormalized = dayProgress;
+
+    // Calculate when in the day each spot should appear
+    const spotTiming = 1 / (config.sunspots.spotsPerDay + 1);
+
+    // Check if we've reached the next spot timing
+    const nextSpotIndex = config.sunspots.spotsCreatedInCurrentDay + 1;
+    const nextSpotTiming = spotTiming * nextSpotIndex;
+
+    if (
+      dayProgressNormalized >= nextSpotTiming &&
+      config.sunspots.spotsCreatedInCurrentDay < nextSpotIndex
+    ) {
+      // Calculate angle from sun to moon for directional spawning
+      const moonToSunAngle = Math.atan2(
+        dots.moon.y - dots.sun.y,
+        dots.moon.x - dots.sun.x
+      );
+
+      // Add a sunspot at the calculated entry point
+      const x = dots.sun.x + Math.cos(moonToSunAngle) * dots.sun.size;
+      const y = dots.sun.y + Math.sin(moonToSunAngle) * dots.sun.size;
+      addSunspot(x, y, moonToSunAngle);
+
+      config.sunspots.lastAlignmentTime = Date.now();
+      config.sunspots.spotsCreatedInCurrentDay++;
+    }
+  }
 
   return {
     transitionFactor,
@@ -1548,6 +1663,89 @@ function drawDots() {
   ctx.fillStyle = config.dotColors[0];
   ctx.fill();
 
+  // Draw sunspots on top of sun
+  if (config.sunspots.enabled && config.sunspots.spots.length > 0) {
+    ctx.fillStyle = config.sunspots.color;
+
+    // First update all positions
+    for (let i = 0; i < config.sunspots.spots.length; i++) {
+      const spot = config.sunspots.spots[i];
+
+      // Update position
+      spot.x += spot.vx;
+      spot.y += spot.vy;
+
+      // Calculate distance to sun center
+      const dx = spot.x - dots.sun.x;
+      const dy = spot.y - dots.sun.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Apply attraction/repulsion force
+      const force = config.sunspots.attraction * 0.1;
+      const ax = (-dx / distance) * force;
+      const ay = (-dy / distance) * force;
+
+      spot.vx += ax;
+      spot.vy += ay;
+
+      // Add friction
+      spot.vx *= 0.99;
+      spot.vy *= 0.99;
+
+      // Keep spots inside sun
+      const maxDistance = dots.sun.size - spot.effectiveSize;
+      if (distance > maxDistance) {
+        const angle = Math.atan2(dy, dx);
+        spot.x = dots.sun.x + Math.cos(angle) * maxDistance;
+        spot.y = dots.sun.y + Math.sin(angle) * maxDistance;
+
+        // Bounce off the boundary
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        const dot = spot.vx * normalX + spot.vy * normalY;
+        spot.vx = spot.vx - 2 * dot * normalX;
+        spot.vy = spot.vy - 2 * dot * normalY;
+      }
+
+      // Apply repulsion between spots
+      for (let j = i + 1; j < config.sunspots.spots.length; j++) {
+        const otherSpot = config.sunspots.spots[j];
+        const dx = otherSpot.x - spot.x;
+        const dy = otherSpot.y - spot.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = spot.effectiveSize + otherSpot.effectiveSize;
+
+        if (distance < minDistance) {
+          const angle = Math.atan2(dy, dx);
+          const overlap = minDistance - distance;
+          const moveX = Math.cos(angle) * overlap * 0.5;
+          const moveY = Math.sin(angle) * overlap * 0.5;
+
+          // Move spots apart
+          spot.x -= moveX;
+          spot.y -= moveY;
+          otherSpot.x += moveX;
+          otherSpot.y += moveY;
+
+          // Exchange momentum
+          const tempVx = spot.vx;
+          const tempVy = spot.vy;
+          spot.vx = otherSpot.vx * 0.8;
+          spot.vy = otherSpot.vy * 0.8;
+          otherSpot.vx = tempVx * 0.8;
+          otherSpot.vy = tempVy * 0.8;
+        }
+      }
+    }
+
+    // Then draw all spots
+    config.sunspots.spots.forEach((spot) => {
+      ctx.beginPath();
+      ctx.arc(spot.x, spot.y, spot.effectiveSize, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
   // Draw planet with heartbeat
   const planetScale = config.planetHeartbeat.enabled
     ? calculateHeartbeatScale(config.planetHeartbeat.beatsPerDay)
@@ -1651,6 +1849,14 @@ function resetAnimation() {
   dots.planet.angle = MONDAY_START;
   // Set moon's initial angle directly to the starting angle
   dots.moon.angle = dots.moon.startingAngle;
+  dots.secondMoon.angle = dots.secondMoon.startingAngle;
+
+  // Reset sunspots
+  config.sunspots.spots = [];
+  config.sunspots.totalMass = 0;
+  config.sunspots.spotsCreatedInCurrentDay = 0;
+  config.sunspots.lastDayNumber = -1;
+  config.sunspots.lastAlignmentTime = 0;
 
   // Update positions
   updateDotPositions();
@@ -1875,3 +2081,466 @@ function initializeSunRadioWaves() {
     });
   }
 }
+
+function addSunspot(x, y, entryAngle) {
+  const angleVariation = ((Math.random() - 0.5) * Math.PI) / 4;
+  const speed = 2 + Math.random() * 2 * config.sunspots.energy;
+  const spotMass = config.sunspots.size; // Base mass from size
+
+  config.sunspots.totalMass += spotMass;
+  const massScale = Math.log2(config.sunspots.totalMass) / 10; // Logarithmic scaling
+
+  config.sunspots.spots.push({
+    x: x,
+    y: y,
+    vx: Math.cos(entryAngle + angleVariation) * speed,
+    vy: Math.sin(entryAngle + angleVariation) * speed,
+    mass: spotMass,
+    effectiveSize: config.sunspots.size * (1 + massScale),
+  });
+}
+
+// Mode System
+const MODE_TEMPLATE = {
+  config: {
+    // Visual settings
+    backgroundColor: null,
+    gridColor: null,
+    textColor: null,
+    dotColors: [], // [sunColor, planetColor, moonColor]
+    activeMoonColor: null,
+    syncLineColor: null,
+    secondWaveColor: null,
+    lineThickness: null,
+    fontSize: null,
+    fontFamily: null,
+
+    // Core mechanics
+    radarRotation: null,
+    gravityEnabled: null,
+    gravityStrength: null,
+    alignmentDays: null, // Set
+    brainstreamDays: null, // Set
+    transitionDuration: null,
+    transitionCurve: null,
+    moonSizeMultiplier: null,
+
+    // Wave settings
+    waveAmplitude: null,
+    waveSpeed: null,
+    waveLength: null,
+
+    // Heartbeat settings
+    sunHeartbeat: {
+      enabled: null,
+      beatsPerDay: null,
+    },
+    planetHeartbeat: {
+      enabled: null,
+      beatsPerDay: null,
+    },
+
+    // Wave effects
+    planetWave: {
+      amplitude: null,
+      speed: null,
+      wavelength: null,
+      thickness: null,
+    },
+    sunWave: {
+      amplitude: null,
+      speed: null,
+      wavelength: null,
+      thickness: null,
+    },
+
+    // Second moon settings
+    secondMoon: {
+      enabled: null,
+      color: null,
+      activeColor: null,
+    },
+
+    // Particle effects
+    planetParticles: {
+      enabled: null,
+      color: null,
+      size: null,
+      amount: null,
+      speed: null,
+      opacity: null,
+      dispersion: null,
+      dayTiming: null,
+      alignmentSync: null,
+    },
+    sunParticles: {
+      enabled: null,
+      color: null,
+      size: null,
+      amount: null,
+      speed: null,
+      opacity: null,
+      dispersion: null,
+      dayTiming: null,
+      alignmentSync: null,
+    },
+
+    // Radio waves
+    planetRadioWaves: {
+      enabled: null,
+      color: null,
+      speed: null,
+      spacing: null,
+      thickness: null,
+      arc: null,
+      range: null,
+      opacity: null,
+      dayTiming: null,
+      alignmentSync: null,
+    },
+    sunRadioWaves: {
+      enabled: null,
+      color: null,
+      speed: null,
+      spacing: null,
+      thickness: null,
+      arc: null,
+      range: null,
+      opacity: null,
+      dayTiming: null,
+      alignmentSync: null,
+    },
+
+    // Sunspot settings
+    sunspots: {
+      enabled: null,
+      size: null,
+      baseSize: null,
+      attraction: null,
+      energy: null,
+      color: null,
+      spotsPerDay: null,
+    },
+  },
+
+  dots: {
+    sun: {
+      size: null,
+      baseSize: null,
+    },
+    planet: {
+      radius: null,
+      size: null,
+      baseSize: null,
+      period: null,
+      direction: null,
+    },
+    moon: {
+      orbitRadius: null,
+      startingAngle: null,
+      size: null,
+      period: null,
+      direction: null,
+    },
+    secondMoon: {
+      orbitRadius: null,
+      startingAngle: null,
+      size: null,
+      period: null,
+      direction: null,
+    },
+  },
+};
+
+const modeSystem = {
+  modes: new Map(),
+  nextModeLabel: "C",
+  currentMode: null,
+  modeTemplates: new Map(), // Store templates for each mode
+
+  initialize() {
+    console.log("Initializing mode system...");
+    // Initialize mode buttons container
+    this.modeButtonsContainer = document.querySelector(".mode-buttons");
+
+    // Add event listeners for mode controls
+    document.getElementById("saveModeA").addEventListener("click", () => {
+      console.log("Save Mode A clicked");
+      this.saveMode("A");
+    });
+    document.getElementById("saveModeB").addEventListener("click", () => {
+      console.log("Save Mode B clicked");
+      this.saveMode("B");
+    });
+    document
+      .getElementById("addNewMode")
+      .addEventListener("click", () => this.addNewMode());
+
+    // Create initial radio buttons for modes A and B
+    this.createModeRadio("A");
+    this.createModeRadio("B");
+    console.log("Mode system initialized");
+  },
+
+  createModeRadio(label) {
+    const existingRadio = document.getElementById(`mode${label}Container`);
+    if (existingRadio) return; // Don't create if it already exists
+
+    const radioContainer = document.createElement("label");
+    radioContainer.className = "mode-radio";
+    radioContainer.id = `mode${label}Container`;
+
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "mode";
+    input.value = label;
+    input.id = `mode${label}`;
+
+    const text = document.createTextNode(`Mode ${label}`);
+
+    radioContainer.appendChild(input);
+    radioContainer.appendChild(text);
+
+    input.addEventListener("change", () => this.setMode(label));
+    this.modeButtonsContainer.appendChild(radioContainer);
+  },
+
+  deepCloneConfig() {
+    // Create a deep clone of the config object
+    const configClone = {};
+
+    // Clone each property carefully
+    for (const [key, value] of Object.entries(config)) {
+      if (value instanceof Set) {
+        configClone[key] = new Set(value);
+      } else if (Array.isArray(value)) {
+        configClone[key] = [...value];
+      } else if (typeof value === "object" && value !== null) {
+        // Deep clone nested objects
+        configClone[key] = {};
+        for (const [nestedKey, nestedValue] of Object.entries(value)) {
+          if (Array.isArray(nestedValue)) {
+            configClone[key][nestedKey] = [...nestedValue];
+          } else if (typeof nestedValue === "object" && nestedValue !== null) {
+            configClone[key][nestedKey] = { ...nestedValue };
+          } else {
+            configClone[key][nestedKey] = nestedValue;
+          }
+        }
+      } else {
+        configClone[key] = value;
+      }
+    }
+
+    // Ensure all UI-related properties are included
+    const uiProperties = [
+      "backgroundColor",
+      "gridColor",
+      "textColor",
+      "dotColors",
+      "activeMoonColor",
+      "syncLineColor",
+      "secondWaveColor",
+      "lineThickness",
+      "fontSize",
+      "fontFamily",
+      "radarRotation",
+      "gravityEnabled",
+      "gravityStrength",
+      "transitionDuration",
+      "transitionCurve",
+      "moonSizeMultiplier",
+      "waveAmplitude",
+      "waveSpeed",
+      "waveLength",
+      "sunHeartbeat",
+      "planetHeartbeat",
+      "planetWave",
+      "sunWave",
+      "secondMoon",
+      "planetParticles",
+      "sunParticles",
+      "planetRadioWaves",
+      "sunRadioWaves",
+      "sunspots",
+    ];
+
+    // Ensure each property exists in the clone
+    uiProperties.forEach((prop) => {
+      if (!(prop in configClone)) {
+        configClone[prop] = config[prop];
+      }
+    });
+
+    return configClone;
+  },
+
+  deepCloneDots() {
+    // Create a deep clone of the dots object with all properties
+    return {
+      sun: {
+        x: dots.sun.x,
+        y: dots.sun.y,
+        size: dots.sun.size,
+        baseSize: dots.sun.baseSize,
+      },
+      planet: {
+        radius: dots.planet.radius,
+        angle: dots.planet.angle,
+        size: dots.planet.size,
+        baseSize: dots.planet.baseSize,
+        x: dots.planet.x,
+        y: dots.planet.y,
+        period: dots.planet.period,
+        direction: dots.planet.direction,
+      },
+      moon: {
+        orbitRadius: dots.moon.orbitRadius,
+        startingAngle: dots.moon.startingAngle,
+        angle: dots.moon.angle,
+        size: dots.moon.size,
+        x: dots.moon.x,
+        y: dots.moon.y,
+        period: dots.moon.period,
+        direction: dots.moon.direction,
+      },
+      secondMoon: {
+        orbitRadius: dots.secondMoon.orbitRadius,
+        startingAngle: dots.secondMoon.startingAngle,
+        angle: dots.secondMoon.angle,
+        size: dots.secondMoon.size,
+        x: dots.secondMoon.x,
+        y: dots.secondMoon.y,
+        period: dots.secondMoon.period,
+        direction: dots.secondMoon.direction,
+      },
+    };
+  },
+
+  createModeTemplate() {
+    const template = JSON.parse(JSON.stringify(MODE_TEMPLATE));
+
+    // Fill template with current values
+    for (const [key, value] of Object.entries(config)) {
+      if (key in template.config) {
+        if (value instanceof Set) {
+          template.config[key] = new Set(value);
+        } else if (Array.isArray(value)) {
+          template.config[key] = [...value];
+        } else if (typeof value === "object" && value !== null) {
+          template.config[key] = JSON.parse(JSON.stringify(value));
+        } else {
+          template.config[key] = value;
+        }
+      }
+    }
+
+    // Fill dots template
+    for (const [dotKey, dotValue] of Object.entries(dots)) {
+      if (dotKey in template.dots) {
+        template.dots[dotKey] = JSON.parse(JSON.stringify(dotValue));
+      }
+    }
+
+    return template;
+  },
+
+  saveMode(label) {
+    console.log(`Saving mode ${label}...`);
+
+    // Create and store template
+    const template = this.createModeTemplate();
+    this.modeTemplates.set(label, template);
+
+    console.log("Template saved for mode", label, template);
+
+    // Create mode data from template
+    const modeData = JSON.parse(JSON.stringify(template));
+
+    // Handle special cases (Sets)
+    modeData.config.alignmentDays = new Set(Array.from(config.alignmentDays));
+    modeData.config.brainstreamDays = new Set(
+      Array.from(config.brainstreamDays)
+    );
+
+    // Save the mode
+    this.modes.set(label, modeData);
+
+    // Create radio button if needed
+    if (!document.getElementById(`mode${label}`)) {
+      this.createModeRadio(label);
+    }
+
+    // Select the saved mode
+    this.setMode(label);
+  },
+
+  addNewMode() {
+    const newLabel = this.nextModeLabel;
+    this.saveMode(newLabel);
+
+    // Update next mode label (A -> B -> C -> D, etc.)
+    this.nextModeLabel = String.fromCharCode(
+      this.nextModeLabel.charCodeAt(0) + 1
+    );
+  },
+
+  setMode(label) {
+    console.log(`Setting mode ${label}...`);
+
+    const modeData = this.modes.get(label);
+    if (!modeData) {
+      console.error(`Mode ${label} not found!`);
+      return;
+    }
+
+    // Get the template for this mode
+    const template = this.modeTemplates.get(label);
+    console.log("Loading template for mode", label, template);
+
+    // Update radio buttons
+    document.querySelectorAll(".mode-radio").forEach((radio) => {
+      radio.classList.remove("active");
+      if (radio.querySelector(`#mode${label}`)) {
+        radio.classList.add("active");
+      }
+    });
+
+    // Select the radio button
+    const radio = document.getElementById(`mode${label}`);
+    if (radio) radio.checked = true;
+
+    // Apply configuration from template
+    Object.assign(config, JSON.parse(JSON.stringify(modeData.config)));
+
+    // Handle special cases (Sets)
+    config.alignmentDays = new Set(Array.from(modeData.config.alignmentDays));
+    config.brainstreamDays = new Set(
+      Array.from(modeData.config.brainstreamDays)
+    );
+
+    // Apply dots configuration
+    Object.assign(dots.sun, modeData.dots.sun);
+    Object.assign(dots.planet, modeData.dots.planet);
+    Object.assign(dots.moon, modeData.dots.moon);
+    Object.assign(dots.secondMoon, modeData.dots.secondMoon);
+
+    // Update positions
+    updateDotPositions();
+
+    // Reinitialize effects
+    if (config.planetParticles.enabled) initializeParticles();
+    if (config.sunParticles.enabled) initializeSunParticles();
+    if (config.planetRadioWaves.enabled) initializePlanetRadioWaves();
+    if (config.sunRadioWaves.enabled) initializeSunRadioWaves();
+
+    // Update UI
+    updateUIFromConfig();
+
+    this.currentMode = label;
+    console.log(`Mode ${label} set successfully`);
+  },
+};
+
+// Initialize mode system after all other initializations
+modeSystem.initialize();
