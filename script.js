@@ -134,7 +134,9 @@ const config = {
     totalMass: 0,
     spotsCreatedInCurrentDay: 0, // Track spots created in current day
     lastDayNumber: -1, // Track the current day number
+    pressureResponse: 1.0, // Added pressure response control
   },
+  globalSpeedMultiplier: 1.0,
 };
 
 // Calculate the radius for the third ring
@@ -155,19 +157,21 @@ const dots = {
   },
   moon: {
     orbitRadius: 40,
-    startingAngle: (270 * Math.PI) / 180, // 270 degrees in radians
-    angle: (270 * Math.PI) / 180, // Initialize angle to match starting angle
+    startingAngle: (270 * Math.PI) / 180,
+    angle: (270 * Math.PI) / 180,
     size: 8,
+    baseSize: 8,
     x: 0,
     y: 0,
-    period: MILLISECONDS_PER_DAY * 2, // 0.5 rotations per day
+    period: MILLISECONDS_PER_DAY * 2,
     direction: 1,
   },
   secondMoon: {
     orbitRadius: 40,
-    startingAngle: (90 * Math.PI) / 180, // Opposite to first moon
+    startingAngle: (90 * Math.PI) / 180,
     angle: (90 * Math.PI) / 180,
     size: 8,
+    baseSize: 8,
     x: 0,
     y: 0,
     period: MILLISECONDS_PER_DAY * 2,
@@ -240,12 +244,62 @@ function initializeControls() {
   });
 
   // Moon controls
-  document.getElementById("moonOrbitRadius").addEventListener("input", (e) => {
-    const radius = parseInt(e.target.value);
-    dots.moon.orbitRadius = radius;
-    // Direction is now controlled by the Direction dropdown instead
-    updateValueDisplay("moonOrbitRadius", radius, "px");
+  document.getElementById("moonSize").addEventListener("input", (e) => {
+    const step = parseInt(e.target.value);
+    // Calculate size using golden ratio: 1x, 1.618x, 2.618x, 4.236x, 6.854x
+    const sizeMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+    dots.moon.size = dots.moon.baseSize * sizeMultiplier;
+    updateValueDisplay("moonSize", sizeMultiplier.toFixed(3), "×");
   });
+
+  document.getElementById("secondMoonSize").addEventListener("input", (e) => {
+    const step = parseInt(e.target.value);
+    // Calculate size using golden ratio: 1x, 1.618x, 2.618x, 4.236x, 6.854x
+    const sizeMultiplier = Math.pow(config.GOLDEN_RATIO, step - 1);
+    dots.secondMoon.size = dots.secondMoon.baseSize * sizeMultiplier;
+    updateValueDisplay("secondMoonSize", sizeMultiplier.toFixed(3), "×");
+  });
+
+  document.getElementById("moonOrbitRadius").addEventListener("input", (e) => {
+    const ringLevel = parseInt(e.target.value) / 2; // Convert steps to ring levels (0.5 increments)
+    const ringSpacing = config.radius / config.rings; // Distance between rings
+    dots.moon.orbitRadius = ringLevel * ringSpacing; // Convert ring level to actual pixels
+    // Display with sign for direction
+    const displayValue =
+      ringLevel > 0 ? `+${ringLevel.toFixed(1)}` : ringLevel.toFixed(1);
+    updateValueDisplay("moonOrbitRadius", displayValue);
+  });
+
+  document
+    .getElementById("secondMoonOrbitRadius")
+    .addEventListener("input", (e) => {
+      const ringLevel = parseInt(e.target.value) / 2; // Convert steps to ring levels (0.5 increments)
+      const ringSpacing = config.radius / config.rings; // Distance between rings
+      dots.secondMoon.orbitRadius = ringLevel * ringSpacing; // Convert ring level to actual pixels
+      // Display with sign for direction
+      const displayValue =
+        ringLevel > 0 ? `+${ringLevel.toFixed(1)}` : ringLevel.toFixed(1);
+      updateValueDisplay("secondMoonOrbitRadius", displayValue);
+    });
+
+  document
+    .getElementById("secondMoonDirection")
+    .addEventListener("change", (e) => {
+      dots.secondMoon.direction = parseInt(e.target.value);
+    });
+
+  document
+    .getElementById("secondMoonStartingPosition")
+    .addEventListener("input", (e) => {
+      const degrees = parseInt(e.target.value);
+      dots.secondMoon.startingAngle = (degrees * Math.PI) / 180;
+      // Update the moon's current angle immediately if not playing
+      if (!config.isPlaying) {
+        dots.secondMoon.angle = dots.secondMoon.startingAngle;
+        updateDotPositions();
+      }
+      updateValueDisplay("secondMoonStartingPosition", degrees, "°");
+    });
 
   document.getElementById("moonPeriod").addEventListener("input", (e) => {
     const rotationsPerDay = parseFloat(e.target.value);
@@ -519,9 +573,13 @@ function initializeControls() {
   document
     .getElementById("secondMoonOrbitRadius")
     .addEventListener("input", (e) => {
-      const radius = parseInt(e.target.value);
-      dots.secondMoon.orbitRadius = radius;
-      updateValueDisplay("secondMoonOrbitRadius", radius, "px");
+      const ringLevel = parseInt(e.target.value) / 2; // Convert steps to ring levels (0.5 increments)
+      const ringSpacing = config.radius / config.rings; // Distance between rings
+      dots.secondMoon.orbitRadius = ringLevel * ringSpacing; // Convert ring level to actual pixels
+      // Display with sign for direction
+      const displayValue =
+        ringLevel > 0 ? `+${ringLevel.toFixed(1)}` : ringLevel.toFixed(1);
+      updateValueDisplay("secondMoonOrbitRadius", displayValue);
     });
 
   document.getElementById("secondMoonPeriod").addEventListener("input", (e) => {
@@ -841,8 +899,10 @@ function initializeControls() {
     });
 
   document.getElementById("sunspotEnergy").addEventListener("input", (e) => {
-    config.sunspots.energy = parseFloat(e.target.value);
-    updateValueDisplay("sunspotEnergy", e.target.value, "×");
+    const value = parseFloat(e.target.value);
+    config.sunspots.pressureResponse = value;
+    // Update display with a more descriptive format
+    updateValueDisplay("sunspotEnergy", value.toFixed(2), "×");
   });
 
   document.getElementById("sunspotColor").addEventListener("input", (e) => {
@@ -857,7 +917,7 @@ function initializeControls() {
   updateValueDisplay("planetOrbitRadius", 3.0);
   updateValueDisplay("planetPeriod", 1.0, "/day");
   updateValueDisplay("sunSize", 1.0, "×");
-  updateValueDisplay("moonOrbitRadius", 40, "px");
+  updateValueDisplay("moonOrbitRadius", 2.0); // Default to 1 ring out
   updateValueDisplay("moonPeriod", 0.5, "/day");
   updateValueDisplay("moonStartingPosition", 270, "°");
   updateValueDisplay("radarRotation", 0, "°");
@@ -875,6 +935,14 @@ function initializeControls() {
   document.getElementById("spotsPerDay").addEventListener("input", (e) => {
     config.sunspots.spotsPerDay = parseInt(e.target.value);
     updateValueDisplay("spotsPerDay", e.target.value);
+  });
+
+  // Add global speed control
+  document.getElementById("globalSpeed").addEventListener("input", (e) => {
+    const value = parseInt(e.target.value);
+    config.globalSpeedMultiplier = value / 100;
+    document.getElementById("globalSpeedValue").textContent =
+      (value / 100).toFixed(1) + "×";
   });
 }
 
@@ -1053,7 +1121,7 @@ function checkAlignment() {
 
 function updateDotPositions() {
   const currentTime = config.isPlaying
-    ? Date.now() - config.startTime
+    ? (Date.now() - config.startTime) * config.globalSpeedMultiplier
     : config.pauseTime;
 
   // Calculate angles
@@ -1663,89 +1731,6 @@ function drawDots() {
   ctx.fillStyle = config.dotColors[0];
   ctx.fill();
 
-  // Draw sunspots on top of sun
-  if (config.sunspots.enabled && config.sunspots.spots.length > 0) {
-    ctx.fillStyle = config.sunspots.color;
-
-    // First update all positions
-    for (let i = 0; i < config.sunspots.spots.length; i++) {
-      const spot = config.sunspots.spots[i];
-
-      // Update position
-      spot.x += spot.vx;
-      spot.y += spot.vy;
-
-      // Calculate distance to sun center
-      const dx = spot.x - dots.sun.x;
-      const dy = spot.y - dots.sun.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Apply attraction/repulsion force
-      const force = config.sunspots.attraction * 0.1;
-      const ax = (-dx / distance) * force;
-      const ay = (-dy / distance) * force;
-
-      spot.vx += ax;
-      spot.vy += ay;
-
-      // Add friction
-      spot.vx *= 0.99;
-      spot.vy *= 0.99;
-
-      // Keep spots inside sun
-      const maxDistance = dots.sun.size - spot.effectiveSize;
-      if (distance > maxDistance) {
-        const angle = Math.atan2(dy, dx);
-        spot.x = dots.sun.x + Math.cos(angle) * maxDistance;
-        spot.y = dots.sun.y + Math.sin(angle) * maxDistance;
-
-        // Bounce off the boundary
-        const normalX = dx / distance;
-        const normalY = dy / distance;
-        const dot = spot.vx * normalX + spot.vy * normalY;
-        spot.vx = spot.vx - 2 * dot * normalX;
-        spot.vy = spot.vy - 2 * dot * normalY;
-      }
-
-      // Apply repulsion between spots
-      for (let j = i + 1; j < config.sunspots.spots.length; j++) {
-        const otherSpot = config.sunspots.spots[j];
-        const dx = otherSpot.x - spot.x;
-        const dy = otherSpot.y - spot.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const minDistance = spot.effectiveSize + otherSpot.effectiveSize;
-
-        if (distance < minDistance) {
-          const angle = Math.atan2(dy, dx);
-          const overlap = minDistance - distance;
-          const moveX = Math.cos(angle) * overlap * 0.5;
-          const moveY = Math.sin(angle) * overlap * 0.5;
-
-          // Move spots apart
-          spot.x -= moveX;
-          spot.y -= moveY;
-          otherSpot.x += moveX;
-          otherSpot.y += moveY;
-
-          // Exchange momentum
-          const tempVx = spot.vx;
-          const tempVy = spot.vy;
-          spot.vx = otherSpot.vx * 0.8;
-          spot.vy = otherSpot.vy * 0.8;
-          otherSpot.vx = tempVx * 0.8;
-          otherSpot.vy = tempVy * 0.8;
-        }
-      }
-    }
-
-    // Then draw all spots
-    config.sunspots.spots.forEach((spot) => {
-      ctx.beginPath();
-      ctx.arc(spot.x, spot.y, spot.effectiveSize, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  }
-
   // Draw planet with heartbeat
   const planetScale = config.planetHeartbeat.enabled
     ? calculateHeartbeatScale(config.planetHeartbeat.beatsPerDay)
@@ -1760,22 +1745,19 @@ function drawDots() {
   ctx.fillStyle = config.dotColors[1];
   ctx.fill();
 
-  // Draw first moon with interpolated size and color
-  const baseSize = dots.moon.size;
-  const targetSize =
-    baseSize * (config.GOLDEN_RATIO * config.moonSizeMultiplier);
-  const currentSize =
-    baseSize + (targetSize - baseSize) * transitionState.smoothFactor;
-
-  const currentColor = lerpColor(
+  // Draw first moon
+  const moonColor = lerpColor(
     config.dotColors[2],
     config.activeMoonColor,
     transitionState.smoothFactor
   );
 
   ctx.beginPath();
-  ctx.arc(dots.moon.x, dots.moon.y, currentSize, 0, Math.PI * 2);
-  ctx.fillStyle = currentColor;
+  ctx.save();
+  ctx.translate(dots.moon.x, dots.moon.y);
+  ctx.arc(0, 0, dots.moon.size, 0, Math.PI * 2);
+  ctx.restore();
+  ctx.fillStyle = moonColor;
   ctx.fill();
 
   // Draw second moon if enabled
@@ -1787,10 +1769,17 @@ function drawDots() {
     );
 
     ctx.beginPath();
-    ctx.arc(dots.secondMoon.x, dots.secondMoon.y, currentSize, 0, Math.PI * 2);
+    ctx.save();
+    ctx.translate(dots.secondMoon.x, dots.secondMoon.y);
+    ctx.arc(0, 0, dots.secondMoon.size, 0, Math.PI * 2);
+    ctx.restore();
     ctx.fillStyle = secondMoonColor;
     ctx.fill();
   }
+
+  // Update and draw sunspots
+  updateSunspotPhysics();
+  drawSunspots();
 }
 
 function drawCommunicationLines() {
@@ -1889,22 +1878,49 @@ function initializeAccordion() {
 }
 
 function savePreset() {
+  // Create a complete template of current state
+  const template = modeSystem.createModeTemplate();
+
+  // Add additional metadata
   const preset = {
-    config: { ...config },
-    dots: {
-      planet: { ...dots.planet },
-      moon: { ...dots.moon },
-    },
+    version: "1.0",
+    timestamp: new Date().toISOString(),
+    template: template,
+    modes: {}, // Save all current modes
   };
 
-  const blob = new Blob([JSON.stringify(preset, null, 2)], {
+  // Save all current modes
+  for (const [label, modeData] of modeSystem.modes.entries()) {
+    preset.modes[label] = {
+      template: modeSystem.modeTemplates.get(label),
+      data: modeData,
+    };
+  }
+
+  // Convert Sets to arrays for JSON serialization
+  const serializedPreset = JSON.parse(
+    JSON.stringify(preset, (key, value) => {
+      if (value instanceof Set) {
+        return {
+          dataType: "Set",
+          value: Array.from(value),
+        };
+      }
+      return value;
+    })
+  );
+
+  const blob = new Blob([JSON.stringify(serializedPreset, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "radar-preset.json";
+  a.download = `radar-preset-${new Date()
+    .toISOString()
+    .split(".")[0]
+    .replace(/[:\-]/g, "")}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1915,25 +1931,77 @@ function loadPreset(file) {
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
-      const preset = JSON.parse(e.target.result);
+      // Parse the JSON and revive Sets
+      const preset = JSON.parse(e.target.result, (key, value) => {
+        if (value && value.dataType === "Set" && Array.isArray(value.value)) {
+          return new Set(value.value);
+        }
+        return value;
+      });
 
-      // Update config
-      Object.assign(config, preset.config);
+      // Clear existing modes
+      modeSystem.modes.clear();
+      modeSystem.modeTemplates.clear();
 
-      // Update checkboxes for brainstream days
-      document
-        .querySelectorAll(".brainstream-day-checkbox")
-        .forEach((checkbox) => {
+      // Load all saved modes
+      if (preset.modes) {
+        for (const [label, modeData] of Object.entries(preset.modes)) {
+          modeSystem.modeTemplates.set(label, modeData.template);
+          modeSystem.modes.set(label, modeData.data);
+
+          // Create radio button if it doesn't exist
+          modeSystem.createModeRadio(label);
+        }
+      }
+
+      // Apply the current template
+      if (preset.template) {
+        // Update config
+        Object.assign(config, preset.template.config);
+
+        // Handle special cases (Sets)
+        if (preset.template.config.alignmentDays) {
+          config.alignmentDays = new Set(preset.template.config.alignmentDays);
+        }
+        if (preset.template.config.brainstreamDays) {
+          config.brainstreamDays = new Set(
+            preset.template.config.brainstreamDays
+          );
+        }
+
+        // Update dots
+        Object.assign(dots.sun, preset.template.dots.sun);
+        Object.assign(dots.planet, preset.template.dots.planet);
+        Object.assign(dots.moon, preset.template.dots.moon);
+        Object.assign(dots.secondMoon, preset.template.dots.secondMoon);
+
+        // Reinitialize effects
+        if (config.planetParticles.enabled) initializeParticles();
+        if (config.sunParticles.enabled) initializeSunParticles();
+        if (config.planetRadioWaves.enabled) initializePlanetRadioWaves();
+        if (config.sunRadioWaves.enabled) initializeSunRadioWaves();
+
+        // Update UI checkboxes for alignment and brainstream days
+        document.querySelectorAll(".day-checkbox").forEach((checkbox) => {
           const day = parseInt(checkbox.value);
-          checkbox.checked = config.brainstreamDays.has(day);
+          checkbox.checked = config.alignmentDays.has(day);
         });
 
-      // Update dots
-      Object.assign(dots.planet, preset.dots.planet);
-      Object.assign(dots.moon, preset.dots.moon);
+        document
+          .querySelectorAll(".brainstream-day-checkbox")
+          .forEach((checkbox) => {
+            const day = parseInt(checkbox.value);
+            checkbox.checked = config.brainstreamDays.has(day);
+          });
 
-      // Update UI
-      updateUIFromConfig();
+        // Update all UI elements
+        updateUIFromConfig();
+
+        // Update positions
+        updateDotPositions();
+      }
+
+      console.log("Preset loaded successfully:", preset);
     } catch (error) {
       console.error("Error loading preset:", error);
     }
@@ -1951,7 +2019,8 @@ function updateUIFromConfig() {
     Math.round(Math.log(planetVelocity) / Math.log(config.GOLDEN_RATIO)) + 1; // Add 1 to match our new scale
   document.getElementById("planetPeriod").value = velocityStep;
   document.getElementById("planetDirection").value = dots.planet.direction;
-  document.getElementById("moonOrbitRadius").value = dots.moon.orbitRadius;
+  document.getElementById("moonOrbitRadius").value =
+    (dots.moon.orbitRadius / (config.radius / config.rings)) * 2; // Convert back to slider steps
   document.getElementById("moonPeriod").value =
     MILLISECONDS_PER_DAY / dots.moon.period;
   document.getElementById("moonDirection").value = dots.moon.direction;
@@ -1975,6 +2044,22 @@ function updateUIFromConfig() {
   document.getElementById("planetHeartbeatsPerDay").value =
     config.planetHeartbeat.beatsPerDay;
   document.getElementById("gravityEnabled").checked = config.gravityEnabled;
+  document.getElementById("secondMoonOrbitRadius").value =
+    (dots.secondMoon.orbitRadius / (config.radius / config.rings)) * 2;
+
+  // Update moon size controls
+  const moonSizeStep =
+    Math.round(
+      Math.log(dots.moon.size / dots.moon.baseSize) /
+        Math.log(config.GOLDEN_RATIO)
+    ) + 1;
+  document.getElementById("moonSize").value = moonSizeStep;
+  const secondMoonSizeStep =
+    Math.round(
+      Math.log(dots.secondMoon.size / dots.secondMoon.baseSize) /
+        Math.log(config.GOLDEN_RATIO)
+    ) + 1;
+  document.getElementById("secondMoonSize").value = secondMoonSizeStep;
 
   // Update all value displays
   updateAllValueDisplays();
@@ -1987,7 +2072,12 @@ function updateAllValueDisplays() {
   );
   const planetVelocity = MILLISECONDS_PER_DAY / dots.planet.period;
   updateValueDisplay("planetPeriod", planetVelocity.toFixed(3), "×");
-  updateValueDisplay("moonOrbitRadius", dots.moon.orbitRadius, "px");
+  const moonRingLevel = dots.moon.orbitRadius / (config.radius / config.rings);
+  const moonDisplayValue =
+    moonRingLevel > 0
+      ? `+${moonRingLevel.toFixed(1)}`
+      : moonRingLevel.toFixed(1);
+  updateValueDisplay("moonOrbitRadius", moonDisplayValue);
   updateValueDisplay(
     "moonPeriod",
     MILLISECONDS_PER_DAY / dots.moon.period,
@@ -2022,6 +2112,23 @@ function updateAllValueDisplays() {
     config.planetHeartbeat.beatsPerDay.toFixed(1),
     "/day"
   );
+  const secondMoonRingLevel =
+    dots.secondMoon.orbitRadius / (config.radius / config.rings);
+  const secondMoonDisplayValue =
+    secondMoonRingLevel > 0
+      ? `+${secondMoonRingLevel.toFixed(1)}`
+      : secondMoonRingLevel.toFixed(1);
+  updateValueDisplay("secondMoonOrbitRadius", secondMoonDisplayValue);
+  // Update moon size displays
+  const moonSizeMultiplier = dots.moon.size / dots.moon.baseSize;
+  updateValueDisplay("moonSize", moonSizeMultiplier.toFixed(3), "×");
+  const secondMoonSizeMultiplier =
+    dots.secondMoon.size / dots.secondMoon.baseSize;
+  updateValueDisplay(
+    "secondMoonSize",
+    secondMoonSizeMultiplier.toFixed(3),
+    "×"
+  );
 }
 
 // Initialize with new default values
@@ -2030,8 +2137,34 @@ function initializeAllValueDisplays() {
   updateValueDisplay("moonPeriod", 2.0, "/day");
   updateValueDisplay("sunHeartbeatsPerDay", 1.0, "/day");
   updateValueDisplay("planetHeartbeatsPerDay", 1.0, "/day");
+  updateValueDisplay("planetOrbitRadius", "0.0");
+  updateValueDisplay("moonOrbitRadius", "0.0");
+  updateValueDisplay("secondMoonOrbitRadius", "0.0");
+  updateValueDisplay("moonSize", "1.0", "×");
+  updateValueDisplay("secondMoonSize", "1.0", "×");
   // ... rest of initializations ...
 }
+
+// Initialize dots with default values
+function initializeDots() {
+  // Reset moon sizes to base values
+  dots.moon.size = dots.moon.baseSize;
+  dots.secondMoon.size = dots.secondMoon.baseSize;
+
+  // Set initial moon size slider values
+  document.getElementById("moonSize").value = "1";
+  document.getElementById("secondMoonSize").value = "1";
+
+  // Update displays
+  updateValueDisplay("moonSize", "1.0", "×");
+  updateValueDisplay("secondMoonSize", "1.0", "×");
+}
+
+// Call initializeDots after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  initializeDots();
+  // ... rest of initialization ...
+});
 
 // Add after initializeControls function
 function initializeParticles() {
@@ -2083,12 +2216,12 @@ function initializeSunRadioWaves() {
 }
 
 function addSunspot(x, y, entryAngle) {
-  const angleVariation = ((Math.random() - 0.5) * Math.PI) / 4;
-  const speed = 2 + Math.random() * 2 * config.sunspots.energy;
-  const spotMass = config.sunspots.size; // Base mass from size
-
-  config.sunspots.totalMass += spotMass;
-  const massScale = Math.log2(config.sunspots.totalMass) / 10; // Logarithmic scaling
+  const angleVariation = ((Math.random() - 0.5) * Math.PI) / 16; // Minimal angle variation
+  const baseSpeed = 0.05; // Very low base speed
+  const speed = baseSpeed + Math.random() * 0.05 * config.sunspots.energy; // Minimal energy influence
+  const spotMass = config.sunspots.size;
+  const spotDensity = 1.0; // Base density for mass flow calculations
+  const spotVolume = Math.PI * Math.pow(config.sunspots.size, 2); // Area * unit depth
 
   config.sunspots.spots.push({
     x: x,
@@ -2096,7 +2229,189 @@ function addSunspot(x, y, entryAngle) {
     vx: Math.cos(entryAngle + angleVariation) * speed,
     vy: Math.sin(entryAngle + angleVariation) * speed,
     mass: spotMass,
-    effectiveSize: config.sunspots.size * (1 + massScale),
+    density: spotDensity,
+    volume: spotVolume,
+    effectiveSize: config.sunspots.size,
+    mergeCount: 0,
+    merging: false,
+    mergeTarget: null,
+    mergeProgress: 0,
+    springConnections: [],
+    entryProgress: 0,
+    entryDuration: 240, // Even longer entry duration
+    pressure: 1.0, // Initial pressure
+  });
+}
+
+function updateSunspotPhysics() {
+  if (!config.sunspots.enabled || config.sunspots.spots.length === 0) return;
+
+  const spots = config.sunspots.spots;
+  const dampening = 0.99; // High dampening for stability
+  const maxBlobSize = dots.sun.size * 0.8;
+  const baseAttractionForce = 0.001; // Minimal base attraction
+
+  // Calculate total occupied area and available space
+  let totalOccupiedArea = 0;
+  const availableArea = Math.PI * Math.pow(dots.sun.size, 2);
+  spots.forEach((spot) => {
+    totalOccupiedArea += Math.PI * Math.pow(spot.effectiveSize, 2);
+  });
+
+  // Calculate pressure factor (0 to 1)
+  const pressureFactor = Math.min(1, totalOccupiedArea / availableArea);
+  // Get pressure response from config (default to 1 if not set)
+  const pressureResponse = config.sunspots.pressureResponse || 1.0;
+  // Exponential pressure scaling with user control - more pronounced effect
+  const scaledPressure = Math.pow(pressureFactor, 2) * pressureResponse;
+
+  // Update positions and handle interactions
+  for (let i = 0; i < spots.length; i++) {
+    const spot = spots[i];
+    if (spot.merging) continue;
+
+    // Calculate size-based inertia (larger spots move slower)
+    const sizeRatio = spot.effectiveSize / config.sunspots.size;
+    const inertiaFactor = 1 / Math.pow(config.GOLDEN_RATIO, spot.mergeCount);
+
+    // Apply minimal sun's gravity with size-based reduction
+    const dx = dots.sun.x - spot.x;
+    const dy = dots.sun.y - spot.y;
+    const distanceToSun = Math.sqrt(dx * dx + dy * dy);
+
+    // Calculate rotational force based on pressure and user control - more pronounced effect
+    const rotationSpeed = 0.0002 * scaledPressure * pressureResponse; // Doubled base rotation speed
+    const rotationAngle = Math.atan2(dy, dx) + Math.PI / 2;
+    const rotationForce = {
+      x: Math.cos(rotationAngle) * rotationSpeed * distanceToSun,
+      y: Math.sin(rotationAngle) * rotationSpeed * distanceToSun,
+    };
+
+    // Very gentle attraction to center, affected by pressure response
+    const attractionForce =
+      baseAttractionForce *
+      inertiaFactor *
+      (1 - scaledPressure * pressureResponse);
+    spot.vx += (dx / distanceToSun) * attractionForce + rotationForce.x;
+    spot.vy += (dy / distanceToSun) * attractionForce + rotationForce.y;
+
+    // Handle interactions with other spots (repulsion)
+    for (let j = i + 1; j < spots.length; j++) {
+      const otherSpot = spots[j];
+      if (otherSpot.merging) continue;
+
+      const dx = otherSpot.x - spot.x;
+      const dy = otherSpot.y - spot.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const minDistance = spot.effectiveSize + otherSpot.effectiveSize;
+
+      if (distance < minDistance) {
+        // Calculate repulsion force based on overlap and pressure - more pronounced effect
+        const overlap = minDistance - distance;
+        const repulsionStrength =
+          0.002 * overlap * (1 + scaledPressure * pressureResponse * 2); // Doubled repulsion effect
+
+        // Apply repulsion forces
+        const repulsionX = (dx / distance) * repulsionStrength;
+        const repulsionY = (dy / distance) * repulsionStrength;
+
+        // Scale forces by size
+        const spotForce = inertiaFactor;
+        const otherForce =
+          1 / Math.pow(config.GOLDEN_RATIO, otherSpot.mergeCount);
+
+        spot.vx -= repulsionX * spotForce;
+        spot.vy -= repulsionY * spotForce;
+        otherSpot.vx += repulsionX * otherForce;
+        otherSpot.vy += repulsionY * otherForce;
+      }
+    }
+
+    // Apply pressure-based dampening with more pronounced effect
+    const pressureDampening = 1 - scaledPressure * 0.3 * pressureResponse; // Increased dampening effect
+    const sizeDampening = Math.pow(dampening, 1 + spot.mergeCount * 0.1);
+    const finalDampening = Math.min(pressureDampening, sizeDampening);
+
+    spot.vx *= finalDampening;
+    spot.vy *= finalDampening;
+
+    // Apply velocity limit based on pressure with more pronounced effect
+    const maxSpeed =
+      (1.0 * (1 - scaledPressure * pressureResponse)) /
+      Math.pow(config.GOLDEN_RATIO, spot.mergeCount);
+    const currentSpeed = Math.sqrt(spot.vx * spot.vx + spot.vy * spot.vy);
+    if (currentSpeed > maxSpeed) {
+      const scale = maxSpeed / currentSpeed;
+      spot.vx *= scale;
+      spot.vy *= scale;
+    }
+
+    // Update position
+    spot.x += spot.vx;
+    spot.y += spot.vy;
+
+    // Boundary handling with pressure-sensitive response
+    const maxDistance = dots.sun.size - spot.effectiveSize;
+    const distanceFromCenter = Math.sqrt(
+      Math.pow(spot.x - dots.sun.x, 2) + Math.pow(spot.y - dots.sun.y, 2)
+    );
+
+    if (distanceFromCenter > maxDistance) {
+      const angle = Math.atan2(spot.y - dots.sun.y, spot.x - dots.sun.x);
+
+      // More pronounced correction based on pressure
+      const correctionFactor =
+        0.02 * inertiaFactor * (1 + scaledPressure * pressureResponse);
+      spot.x =
+        spot.x * (1 - correctionFactor) +
+        (dots.sun.x + Math.cos(angle) * maxDistance) * correctionFactor;
+      spot.y =
+        spot.y * (1 - correctionFactor) +
+        (dots.sun.y + Math.sin(angle) * maxDistance) * correctionFactor;
+
+      // More pronounced boundary response
+      const bounceReduction =
+        Math.pow(0.95, 1 + spot.mergeCount * 0.1) *
+        (1 - scaledPressure * 0.4 * pressureResponse); // Increased boundary effect
+      spot.vx *= bounceReduction;
+      spot.vy *= bounceReduction;
+    }
+  }
+}
+
+// Update the drawDots function to include the new sunspot visualization
+function drawSunspots() {
+  if (!config.sunspots.enabled || config.sunspots.spots.length === 0) return;
+
+  // Draw spring connections
+  ctx.strokeStyle = config.sunspots.color + "40"; // 25% opacity
+  ctx.lineWidth = 2;
+  const drawnConnections = new Set();
+
+  config.sunspots.spots.forEach((spot) => {
+    spot.springConnections.forEach((otherSpot) => {
+      const connectionId = [spot, otherSpot].sort().join("-");
+      if (!drawnConnections.has(connectionId)) {
+        ctx.beginPath();
+        ctx.moveTo(spot.x, spot.y);
+        ctx.lineTo(otherSpot.x, otherSpot.y);
+        ctx.stroke();
+        drawnConnections.add(connectionId);
+      }
+    });
+  });
+
+  // Draw spots
+  ctx.fillStyle = config.sunspots.color;
+  config.sunspots.spots.forEach((spot) => {
+    ctx.beginPath();
+    if (spot.merging) {
+      // Draw merging spots with reduced opacity
+      ctx.globalAlpha = 1 - spot.mergeProgress;
+    }
+    ctx.arc(spot.x, spot.y, spot.effectiveSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
   });
 }
 
@@ -2544,3 +2859,44 @@ const modeSystem = {
 
 // Initialize mode system after all other initializations
 modeSystem.initialize();
+
+// Embed code generation and copying
+function updateEmbedCode() {
+  const mode = document.getElementById("embedDefaultMode").value;
+  const autoplay = document.getElementById("embedAutoplay").checked;
+  const showSpeedControl = document.getElementById(
+    "embedShowSpeedControl"
+  ).checked;
+
+  const embedCode = `<!-- Orbital Visualization Embed -->
+<div id="orbital-visualization"></div>
+<script src="path/to/orbital-embed.js"></script>
+<script>
+  new OrbitalEmbed('orbital-visualization', {
+    mode: '${mode}',
+    autoplay: ${autoplay},
+    showSpeedControl: ${showSpeedControl}
+  });
+</script>`;
+
+  document.getElementById("embedCode").value = embedCode;
+}
+
+function copyEmbedCode() {
+  const embedCode = document.getElementById("embedCode");
+  embedCode.select();
+  document.execCommand("copy");
+
+  // Visual feedback
+  const copyButton = document.querySelector('[onclick="copyEmbedCode()"]');
+  const originalText = copyButton.textContent;
+  copyButton.textContent = "✅ Copied!";
+  setTimeout(() => {
+    copyButton.textContent = originalText;
+  }, 2000);
+}
+
+// Add event listeners for embed settings
+document
+  .getElementById("embedDefaultMode")
+  .addEventListener("change", updateEmbedCode);

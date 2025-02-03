@@ -4,6 +4,8 @@ Energy is the capacity for work.
 
 An interactive visualization of atomic orbitals using HTML5 Canvas. This project creates a radar-like display that simulates the movement and interaction of celestial bodies with various visual effects.
 
+IMPORTANT: This project is an exploratory "play" project built with the help of AI (Cursor + Claude Sonnet 3.5). If you are a programmer, I am sure you will laugh or cringe at my incompetence. Whatever the case, please feel free to suggest how could I improve this, I am here to learn.
+
 ## Features
 
 - Interactive radar display with customizable grid

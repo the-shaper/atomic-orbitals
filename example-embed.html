@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbital Visualization Embed Example</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 2rem;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #1a1a1a;
+        color: #fff;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .embed-container {
+        width: 600px;
+        height: 600px;
+        margin: 2rem auto;
+      }
+      .controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin: 1rem 0;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        background: #2b4d59;
+        color: white;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+      button:hover {
+        background: #3a6577;
+      }
+      button.active {
+        background: #ff6b35;
+      }
+      .mode-controls,
+      .playback-controls {
+        display: flex;
+        gap: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Orbital Visualization Embed Example</h1>
+
+      <!-- Example 1: Default Settings -->
+      <h2>Example 1: Default Settings</h2>
+      <div id="orbital1" class="embed-container"></div>
+
+      <!-- Example 2: Mode A with speed control -->
+      <h2>Example 2: Mode A with Controls</h2>
+      <div id="orbital2" class="embed-container"></div>
+      <div class="controls">
+        <div class="playback-controls">
+          <button onclick="orbital2.play()">Play</button>
+          <button onclick="orbital2.pause()">Pause</button>
+          <button onclick="orbital2.reset()">Reset</button>
+        </div>
+      </div>
+
+      <!-- Example 3: Custom JSON Configuration -->
+      <h2>Example 3: Custom Configuration</h2>
+      <div id="orbital3" class="embed-container"></div>
+      <div class="controls">
+        <div class="mode-controls">
+          <button onclick="orbital3.setMode('A')" class="mode-btn">
+            Mode A
+          </button>
+          <button onclick="orbital3.setMode('B')" class="mode-btn">
+            Mode B
+          </button>
+          <button onclick="orbital3.setMode(customConfig)" class="mode-btn">
+            Custom
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load core and embed scripts -->
+    <script src="./orbital-core.js"></script>
+    <script src="./orbital-embed.js"></script>
+
+    <!-- Initialize the embeds -->
+    <script>
+      // Custom configuration example
+      const customConfig = {
+        backgroundColor: "#1a1a1a",
+        gridColor: "#2b4d59",
+        textColor: "#2b4d59",
+        dotColors: ["#ff6b35", "#2b4d59", "#a5a5a5"],
+        // You can override any of these default values:
+        rings: 4,
+        isPlaying: true,
+        globalSpeedMultiplier: 1.0,
+        // Dot configurations
+        dots: {
+          sun: { size: 16 },
+          planet: {
+            size: 12,
+            period: 1000, // milliseconds per day
+            direction: 1, // 1 for clockwise, -1 for counterclockwise
+          },
+          moon: {
+            size: 8,
+            orbitRadius: 40,
+            period: 2000,
+            direction: 1,
+          },
+        },
+      };
+
+      // Initialize examples after DOM is loaded
+      document.addEventListener("DOMContentLoaded", () => {
+        // Example 1: Default Settings (no mode specified = use core defaults)
+        window.orbital1 = new OrbitalEmbed("orbital1", {
+          autoplay: true,
+          showSpeedControl: false,
+        });
+
+        // Example 2: Mode A with Controls
+        window.orbital2 = new OrbitalEmbed("orbital2", {
+          mode: "A",
+          autoplay: false,
+          showSpeedControl: true,
+        });
+
+        // Example 3: Custom Configuration
+        window.orbital3 = new OrbitalEmbed("orbital3", {
+          mode: customConfig,
+          autoplay: true,
+          showSpeedControl: true,
+        });
+
+        // Add active state to mode buttons
+        const modeButtons = document.querySelectorAll(".mode-btn");
+        modeButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            modeButtons.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

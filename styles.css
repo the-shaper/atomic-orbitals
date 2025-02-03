@@ -128,12 +128,39 @@ body {
   padding-right: 10px;
 }
 
-.control-group {
+.settings-content .control-group {
   display: none;
 }
 
-.control-group.active {
+.settings-content .control-group.active {
   display: block;
+}
+
+.main-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  width: 600px;
+  margin: 0 auto;
+}
+
+.main-controls button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #1a1515;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #1a1515;
+}
+
+.main-controls button:hover {
+  background: #1a1515;
+  color: #d1e7de;
 }
 
 /* Preset controls should always be visible at the top */
@@ -526,4 +553,47 @@ input[type="range"] {
 
 .mode-radio.active:hover {
   background: #ff8255;
+}
+
+.speed-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 0 20px;
+  width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.speed-control input[type="range"] {
+  flex: 1;
+  height: 4px;
+  background: #cce0cc;
+  border-radius: 2px;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 300px;
+}
+
+.speed-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #2b4d59;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.speed-control input[type="range"]::-webkit-slider-thumb:hover {
+  background: #3a6577;
+}
+
+.speed-control span {
+  font-size: 14px;
+  color: #2b4d59;
+  min-width: 45px;
+  text-align: right;
 }
