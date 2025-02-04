@@ -2919,6 +2919,14 @@ function updateEmbedCode() {
     );
   }
 
+  // Add current configuration if mode is 'current'
+  if (mode === "current") {
+    modeConfigs.current = {
+      config: modeSystem.deepCloneConfig(),
+      dots: modeSystem.deepCloneDots(),
+    };
+  }
+
   const configString = JSON.stringify(modeConfigs, null, 2).replace(
     /\$/g,
     "\\$"
@@ -2933,12 +2941,13 @@ function updateEmbedCode() {
   // Mode configurations
   const ORBITAL_CONFIGS = ${configString};
 
-  // Initialize the orbital visualization
+  // Initialize the orbital visualization with complete configuration
   const orbitalVis = new OrbitalEmbed('orbital-visualization', {
     mode: '${mode}',
     autoplay: ${autoplay},
     showSpeedControl: ${showSpeedControl},
-    configurations: ORBITAL_CONFIGS // Pass configurations directly
+    configurations: ORBITAL_CONFIGS,
+    defaultConfig: ORBITAL_CONFIGS.${mode} || ORBITAL_CONFIGS.current // Ensure a default configuration is always provided
   });
 
   // Connect external controls (Webflow elements)
