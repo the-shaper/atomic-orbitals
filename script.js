@@ -2249,7 +2249,7 @@ function updateSunspotPhysics() {
   const spots = config.sunspots.spots;
   const dampening = 0.99; // High dampening for stability
   const maxBlobSize = dots.sun.size * 0.8;
-  const baseAttractionForce = 0.001; // Minimal base attraction
+  const baseAttractionForce = 0.015; // Increased from 0.005 to 0.015 (3x)
 
   // Calculate total occupied area and available space
   let totalOccupiedArea = 0;
@@ -2274,24 +2274,28 @@ function updateSunspotPhysics() {
     const sizeRatio = spot.effectiveSize / config.sunspots.size;
     const inertiaFactor = 1 / Math.pow(config.GOLDEN_RATIO, spot.mergeCount);
 
-    // Apply minimal sun's gravity with size-based reduction
+    // Apply sun's gravity with user-controlled attraction
     const dx = dots.sun.x - spot.x;
     const dy = dots.sun.y - spot.y;
     const distanceToSun = Math.sqrt(dx * dx + dy * dy);
 
-    // Calculate rotational force based on pressure and user control - more pronounced effect
-    const rotationSpeed = 0.0002 * scaledPressure * pressureResponse; // Doubled base rotation speed
+    // Calculate rotational force based on pressure and user control
+    const rotationSpeed = 0.0002 * scaledPressure * pressureResponse;
     const rotationAngle = Math.atan2(dy, dx) + Math.PI / 2;
     const rotationForce = {
       x: Math.cos(rotationAngle) * rotationSpeed * distanceToSun,
       y: Math.sin(rotationAngle) * rotationSpeed * distanceToSun,
     };
 
-    // Very gentle attraction to center, affected by pressure response
+    // Enhanced attraction calculation using the slider value
+    const userAttractionFactor = (config.sunspots.attraction + 1) * 1.5; // Changed from 0.5 to 1.5 (3x range)
     const attractionForce =
       baseAttractionForce *
       inertiaFactor *
-      (1 - scaledPressure * pressureResponse);
+      (1 - scaledPressure * pressureResponse) *
+      userAttractionFactor *
+      (distanceToSun / dots.sun.size); // Scale with distance
+
     spot.vx += (dx / distanceToSun) * attractionForce + rotationForce.x;
     spot.vy += (dy / distanceToSun) * attractionForce + rotationForce.y;
 
@@ -2781,6 +2785,29 @@ const modeSystem = {
     // Save the mode
     this.modes.set(label, modeData);
 
+    // Generate JSON file for embed usage
+    const jsonData = JSON.stringify(
+      modeData,
+      (key, value) => {
+        if (value instanceof Set) {
+          return Array.from(value);
+        }
+        return value;
+      },
+      2
+    );
+
+    // Create download for the JSON file
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mode${label}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
     // Create radio button if needed
     if (!document.getElementById(`mode${label}`)) {
       this.createModeRadio(label);
@@ -2788,6 +2815,9 @@ const modeSystem = {
 
     // Select the saved mode
     this.setMode(label);
+
+    // Update embed code
+    updateEmbedCode();
   },
 
   addNewMode() {
@@ -2868,14 +2898,55 @@ function updateEmbedCode() {
     "embedShowSpeedControl"
   ).checked;
 
+  // Get configurations for both modes
+  const modeConfigs = {};
+
+  if (modeSystem.modes.has("A")) {
+    modeConfigs.A = JSON.parse(
+      JSON.stringify(modeSystem.modes.get("A"), (key, value) => {
+        if (value instanceof Set) return Array.from(value);
+        return value;
+      })
+    );
+  }
+
+  if (modeSystem.modes.has("B")) {
+    modeConfigs.B = JSON.parse(
+      JSON.stringify(modeSystem.modes.get("B"), (key, value) => {
+        if (value instanceof Set) return Array.from(value);
+        return value;
+      })
+    );
+  }
+
   const embedCode = `<!-- Orbital Visualization Embed -->
 <div id="orbital-visualization"></div>
-<script src="path/to/orbital-embed.js"></script>
+<script src="https://the-shaper.github.io/orbital-embed.js"></script>
+<script src="https://the-shaper.github.io/orbital-core.js"></script>
+<link rel="stylesheet" href="https://the-shaper.github.io/orbital-embed.css">
 <script>
-  new OrbitalEmbed('orbital-visualization', {
+  // Mode configurations
+  const ORBITAL_CONFIGS = ${JSON.stringify(modeConfigs, null, 2)};
+
+  // Initialize the orbital visualization
+  const orbitalVis = new OrbitalEmbed('orbital-visualization', {
     mode: '${mode}',
     autoplay: ${autoplay},
-    showSpeedControl: ${showSpeedControl}
+    showSpeedControl: ${showSpeedControl},
+    configurations: ORBITAL_CONFIGS // Pass configurations directly
+  });
+
+  // Connect external controls (Webflow elements)
+  document.querySelectorAll('.orbital-mode-trigger').forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const mode = trigger.getAttribute('data-mode');
+      if (mode) {
+        orbitalVis.setMode(mode);
+        document.querySelectorAll('.orbital-mode-trigger').forEach(t => 
+          t.classList.toggle('active', t.getAttribute('data-mode') === mode)
+        );
+      }
+    });
   });
 </script>`;
 
