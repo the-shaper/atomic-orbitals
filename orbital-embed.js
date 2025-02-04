@@ -134,25 +134,35 @@ class OrbitalEmbed {
     try {
       let config;
 
-      if (typeof this.options.mode === "object") {
-        // Direct JSON configuration
-        config = this.options.mode;
-      } else {
-        // Load from saved modes
-        const mode = this.options.mode.toUpperCase();
-        if (mode === "A" || mode === "B") {
-          const response = await fetch(`mode${mode}.json`);
-          config = await response.json();
-        } else if (mode === "CURRENT") {
-          const response = await fetch("current.json");
-          config = await response.json();
+      // Use configurations provided in the options
+      if (this.options.configurations) {
+        if (typeof this.options.mode === "object") {
+          // Direct JSON configuration
+          config = this.options.mode;
+        } else {
+          // Load from provided configurations
+          const mode = this.options.mode.toUpperCase();
+          if (this.options.configurations[mode]) {
+            config = this.options.configurations[mode];
+          } else if (
+            mode === "CURRENT" &&
+            this.options.configurations.current
+          ) {
+            config = this.options.configurations.current;
+          }
         }
+      }
+
+      // Fallback to default config if provided
+      if (!config && this.options.defaultConfig) {
+        config = this.options.defaultConfig;
       }
 
       return config || {};
     } catch (error) {
       console.error("Error loading configuration:", error);
-      return {};
+      // Fallback to default config if available
+      return this.options.defaultConfig || {};
     }
   }
 

@@ -1743,12 +1743,29 @@
               <div class="control-section">
                 <h4>Embed Configuration</h4>
                 <div class="control-item">
-                  <label>Default Mode</label>
-                  <select id="embedDefaultMode">
-                    <option value="current">Current Settings</option>
-                    <option value="A">Mode A</option>
-                    <option value="B">Mode B</option>
-                  </select>
+                  <label>Include Modes</label>
+                  <div class="mode-selection">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="embedIncludeModeA" checked />
+                      <span class="checkbox-text">Mode A</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="embedIncludeModeB" checked />
+                      <span class="checkbox-text">Mode B</span>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="embedIncludeCurrent" />
+                      <span class="checkbox-text">Current Settings</span>
+                    </label>
+                  </div>
+                  <div class="control-item">
+                    <label>Default Mode</label>
+                    <select id="embedDefaultMode">
+                      <option value="A">Mode A</option>
+                      <option value="B">Mode B</option>
+                      <option value="current">Current Settings</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="control-item">
                   <label>Autoplay</label>
@@ -1891,5 +1908,24 @@
         });
       });
     </script>
+    <style>
+      .mode-selection {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .checkbox-text {
+        color: #cce0cc;
+      }
+    </style>
   </body>
 </html>

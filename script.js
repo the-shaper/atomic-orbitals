@@ -2898,10 +2898,15 @@ function updateEmbedCode() {
     "embedShowSpeedControl"
   ).checked;
 
-  // Get configurations for both modes
+  // Get configurations for selected modes
   const modeConfigs = {};
 
-  if (modeSystem.modes.has("A")) {
+  // Check which modes are selected
+  const includeModeA = document.getElementById("embedIncludeModeA").checked;
+  const includeModeB = document.getElementById("embedIncludeModeB").checked;
+  const includeCurrent = document.getElementById("embedIncludeCurrent").checked;
+
+  if (includeModeA && modeSystem.modes.has("A")) {
     modeConfigs.A = JSON.parse(
       JSON.stringify(modeSystem.modes.get("A"), (key, value) => {
         if (value instanceof Set) return Array.from(value);
@@ -2910,7 +2915,7 @@ function updateEmbedCode() {
     );
   }
 
-  if (modeSystem.modes.has("B")) {
+  if (includeModeB && modeSystem.modes.has("B")) {
     modeConfigs.B = JSON.parse(
       JSON.stringify(modeSystem.modes.get("B"), (key, value) => {
         if (value instanceof Set) return Array.from(value);
@@ -2919,12 +2924,20 @@ function updateEmbedCode() {
     );
   }
 
-  // Add current configuration if mode is 'current'
-  if (mode === "current") {
+  if (includeCurrent) {
     modeConfigs.current = {
       config: modeSystem.deepCloneConfig(),
       dots: modeSystem.deepCloneDots(),
     };
+  }
+
+  // Update default mode dropdown based on available modes
+  const defaultModeSelect = document.getElementById("embedDefaultMode");
+  const availableModes = Object.keys(modeConfigs);
+
+  // If the current default mode isn't available, select the first available mode
+  if (!availableModes.includes(mode)) {
+    defaultModeSelect.value = availableModes[0] || "A";
   }
 
   const configString = JSON.stringify(modeConfigs, null, 2).replace(
@@ -2932,11 +2945,37 @@ function updateEmbedCode() {
     "\\$"
   );
 
+  // Only show mode switcher if more than one mode is selected
+  const showModeSwitcher = Object.keys(modeConfigs).length > 1;
+
   const embedCode = `<!-- Orbital Visualization Embed -->
+<!-- Container for the visualization -->
 <div id="orbital-visualization"></div>
+
+${
+  showModeSwitcher
+    ? `<!-- Mode switcher buttons (customize the styling in Webflow) -->
+<div class="orbital-mode-switcher">
+  ${Object.keys(modeConfigs)
+    .map(
+      (m) =>
+        `<button class="orbital-mode-trigger${
+          m === mode ? " active" : ""
+        }" data-mode="${m}">${
+          m === "current" ? "Current Settings" : `Mode ${m}`
+        }</button>`
+    )
+    .join("\n  ")}
+</div>`
+    : ""
+}
+
+<!-- Required scripts and styles -->
 <script src="https://the-shaper.github.io/orbital-embed.js"></script>
 <script src="https://the-shaper.github.io/orbital-core.js"></script>
 <link rel="stylesheet" href="https://the-shaper.github.io/orbital-embed.css">
+
+<!-- Initialization script -->
 <script>
   // Mode configurations
   const ORBITAL_CONFIGS = ${configString};
@@ -2947,41 +2986,102 @@ function updateEmbedCode() {
     autoplay: ${autoplay},
     showSpeedControl: ${showSpeedControl},
     configurations: ORBITAL_CONFIGS,
-    defaultConfig: ORBITAL_CONFIGS.${mode} || ORBITAL_CONFIGS.current // Ensure a default configuration is always provided
+    defaultConfig: {
+      config: ORBITAL_CONFIGS['${mode}']?.config || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.config || {},
+      dots: ORBITAL_CONFIGS['${mode}']?.dots || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.dots || {}
+    }
   });
 
-  // Connect external controls (Webflow elements)
+  ${
+    showModeSwitcher
+      ? `// Connect mode switcher buttons
   document.querySelectorAll('.orbital-mode-trigger').forEach(trigger => {
     trigger.addEventListener('click', () => {
       const mode = trigger.getAttribute('data-mode');
-      if (mode) {
+      if (mode && ORBITAL_CONFIGS[mode]) {
+        // Update visualization
         orbitalVis.setMode(mode);
+        
+        // Update button states
         document.querySelectorAll('.orbital-mode-trigger').forEach(t => 
-          t.classList.toggle('active', t.getAttribute('data-mode') === mode)
+          t.classList.toggle('active', t === trigger)
         );
       }
     });
-  });
-</script>`;
+  });`
+      : ""
+  }
+</script>
 
-  document.getElementById("embedCode").value = embedCode;
+${
+  showModeSwitcher
+    ? `<!-- Example CSS for mode switcher (can be customized in Webflow) -->
+<style>
+  .orbital-mode-switcher {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+  
+  .orbital-mode-trigger {
+    padding: 8px 16px;
+    border: 2px solid #cce0cc;
+    background: transparent;
+    color: #cce0cc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .orbital-mode-trigger.active {
+    background: #cce0cc;
+    color: #1a1a1a;
+  }
+  
+  .orbital-mode-trigger:hover {
+    opacity: 0.8;
+  }
+</style>`
+    : ""
 }
 
-function copyEmbedCode() {
-  const embedCode = document.getElementById("embedCode");
-  embedCode.select();
-  document.execCommand("copy");
+<!-- Instructions for Webflow implementation -->
+<!--
+HOW TO USE IN WEBFLOW:
+1. Add an "Embed" element to your page
+2. Copy everything above into the embed code${
+    showModeSwitcher
+      ? `
+3. To create custom mode triggers:
+   - Add any clickable element (button, div, etc.)
+   - Add class: orbital-mode-trigger
+   - Add attribute: data-mode="${Object.keys(modeConfigs).join('" or "')}"
+4. Style your elements in Webflow:
+   - Normal state: default styles
+   - Active state: use .orbital-mode-trigger.active`
+      : ""
+  }
+-->`;
 
-  // Visual feedback
-  const copyButton = document.querySelector('[onclick="copyEmbedCode()"]');
-  const originalText = copyButton.textContent;
-  copyButton.textContent = "✅ Copied!";
-  setTimeout(() => {
-    copyButton.textContent = originalText;
-  }, 2000);
+  document.getElementById("embedCode").value = embedCode;
 }
 
 // Add event listeners for embed settings
 document
   .getElementById("embedDefaultMode")
+  .addEventListener("change", updateEmbedCode);
+document
+  .getElementById("embedAutoplay")
+  .addEventListener("change", updateEmbedCode);
+document
+  .getElementById("embedShowSpeedControl")
+  .addEventListener("change", updateEmbedCode);
+document
+  .getElementById("embedIncludeModeA")
+  .addEventListener("change", updateEmbedCode);
+document
+  .getElementById("embedIncludeModeB")
+  .addEventListener("change", updateEmbedCode);
+document
+  .getElementById("embedIncludeCurrent")
   .addEventListener("change", updateEmbedCode);
