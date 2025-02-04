@@ -2919,6 +2919,11 @@ function updateEmbedCode() {
     );
   }
 
+  const configString = JSON.stringify(modeConfigs, null, 2).replace(
+    /\$/g,
+    "\\$"
+  );
+
   const embedCode = `<!-- Orbital Visualization Embed -->
 <div id="orbital-visualization"></div>
 <script src="https://the-shaper.github.io/orbital-embed.js"></script>
@@ -2926,7 +2931,7 @@ function updateEmbedCode() {
 <link rel="stylesheet" href="https://the-shaper.github.io/orbital-embed.css">
 <script>
   // Mode configurations
-  const ORBITAL_CONFIGS = ${JSON.stringify(modeConfigs, null, 2)};
+  const ORBITAL_CONFIGS = ${configString};
 
   // Initialize the orbital visualization
   const orbitalVis = new OrbitalEmbed('orbital-visualization', {
