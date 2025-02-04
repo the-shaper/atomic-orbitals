@@ -158,6 +158,16 @@ class OrbitalEmbed {
         config = this.options.defaultConfig;
       }
 
+      // Ensure we have a valid configuration object
+      if (typeof config === "string") {
+        try {
+          config = JSON.parse(config);
+        } catch (e) {
+          console.warn("Failed to parse configuration string:", e);
+          config = this.options.defaultConfig || {};
+        }
+      }
+
       return config || {};
     } catch (error) {
       console.error("Error loading configuration:", error);

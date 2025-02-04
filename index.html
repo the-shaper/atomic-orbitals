@@ -1867,6 +1867,7 @@
               <div class="control-section">
                 <h4>Embed Code</h4>
                 <div class="control-item">
+                  <label>Essential Code</label>
                   <textarea
                     id="embedCode"
                     rows="8"
@@ -1886,7 +1887,65 @@
                     📋 Copy Code
                   </button>
                 </div>
+
+                <div class="control-item" style="margin-top: 2rem">
+                  <label>Optional Extras</label>
+                  <div class="extras-tabs">
+                    <button class="extras-tab active" data-tab="mode-switcher">
+                      Mode Switcher
+                    </button>
+                    <button class="extras-tab" data-tab="styles">Styles</button>
+                    <button class="extras-tab" data-tab="instructions">
+                      Instructions
+                    </button>
+                  </div>
+                  <textarea
+                    id="extrasCode"
+                    rows="6"
+                    readonly
+                    style="
+                      width: 100%;
+                      margin-top: 1rem;
+                      font-family: monospace;
+                      padding: 1rem;
+                      background: #1a1a1a;
+                      color: #cce0cc;
+                      border: none;
+                      border-radius: 4px;
+                    "
+                  ></textarea>
+                  <button onclick="copyExtrasCode()" style="margin-top: 1rem">
+                    📋 Copy Extras
+                  </button>
+                </div>
               </div>
+
+              <style>
+                .extras-tabs {
+                  display: flex;
+                  gap: 8px;
+                  margin-top: 0.5rem;
+                }
+
+                .extras-tab {
+                  padding: 8px 16px;
+                  background: #1a1a1a;
+                  border: 1px solid #cce0cc;
+                  color: #cce0cc;
+                  cursor: pointer;
+                  border-radius: 4px;
+                  transition: all 0.3s ease;
+                }
+
+                .extras-tab:hover {
+                  opacity: 0.8;
+                }
+
+                .extras-tab.active {
+                  background: #cce0cc;
+                  color: #1a1a1a;
+                }
+              </style>
             </div>
           </div>
         </div>

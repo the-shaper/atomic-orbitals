@@ -2890,7 +2890,115 @@ const modeSystem = {
 // Initialize mode system after all other initializations
 modeSystem.initialize();
 
-// Embed code generation and copying
+// Generate the essential embed code
+function generateEssentialCode(mode, autoplay, showSpeedControl, modeConfigs) {
+  return `<!-- Orbital Visualization Embed -->
+<div id="orbital-visualization"></div>
+
+<!-- Required scripts and styles -->
+<script src="https://the-shaper.github.io/orbital-embed.js"></script>
+<script src="https://the-shaper.github.io/orbital-core.js"></script>
+<link rel="stylesheet" href="https://the-shaper.github.io/orbital-embed.css">
+
+<script>
+  // Mode configurations
+  const ORBITAL_CONFIGS = ${JSON.stringify(modeConfigs, null, 2).replace(
+    /\$/g,
+    "\\$"
+  )};
+
+  // Initialize the orbital visualization
+  const orbitalVis = new OrbitalEmbed('orbital-visualization', {
+    mode: '${mode}',
+    autoplay: ${autoplay},
+    showSpeedControl: ${showSpeedControl},
+    configurations: ORBITAL_CONFIGS,
+    defaultConfig: {
+      config: ORBITAL_CONFIGS['${mode}']?.config || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.config || {},
+      dots: ORBITAL_CONFIGS['${mode}']?.dots || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.dots || {}
+    }
+  });
+</script>`;
+}
+
+// Generate the mode switcher code
+function generateModeSwitcherCode(modeConfigs, mode) {
+  return `<!-- Mode switcher buttons -->
+<div class="orbital-mode-switcher">
+  ${Object.keys(modeConfigs)
+    .map(
+      (m) =>
+        `<button class="orbital-mode-trigger${
+          m === mode ? " active" : ""
+        }" data-mode="${m}">${
+          m === "current" ? "Current Settings" : `Mode ${m}`
+        }</button>`
+    )
+    .join("\n  ")}
+</div>
+
+<script>
+  // Connect mode switcher buttons
+  document.querySelectorAll('.orbital-mode-trigger').forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const mode = trigger.getAttribute('data-mode');
+      if (mode && ORBITAL_CONFIGS[mode]) {
+        orbitalVis.setMode(mode);
+        document.querySelectorAll('.orbital-mode-trigger').forEach(t => 
+          t.classList.toggle('active', t === trigger)
+        );
+      }
+    });
+  });
+</script>`;
+}
+
+// Generate the styles code
+function generateStylesCode() {
+  return `<style>
+  .orbital-mode-switcher {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+  
+  .orbital-mode-trigger {
+    padding: 8px 16px;
+    border: 2px solid #cce0cc;
+    background: transparent;
+    color: #cce0cc;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .orbital-mode-trigger.active {
+    background: #cce0cc;
+    color: #1a1a1a;
+  }
+  
+  .orbital-mode-trigger:hover {
+    opacity: 0.8;
+  }
+</style>`;
+}
+
+// Generate the instructions code
+function generateInstructionsCode(modeConfigs) {
+  return `<!--
+HOW TO USE IN WEBFLOW:
+1. Add an "Embed" element to your page
+2. Copy the essential code into the embed element
+3. To create custom mode triggers:
+   - Add any clickable element (button, div, etc.)
+   - Add class: orbital-mode-trigger
+   - Add attribute: data-mode="${Object.keys(modeConfigs).join('" or "')}"
+4. Style your elements in Webflow:
+   - Normal state: default styles
+   - Active state: use .orbital-mode-trigger.active
+-->`;
+}
+
 function updateEmbedCode() {
   const mode = document.getElementById("embedDefaultMode").value;
   const autoplay = document.getElementById("embedAutoplay").checked;
@@ -2940,148 +3048,70 @@ function updateEmbedCode() {
     defaultModeSelect.value = availableModes[0] || "A";
   }
 
-  const configString = JSON.stringify(modeConfigs, null, 2).replace(
-    /\$/g,
-    "\\$"
+  // Generate and update the essential code
+  document.getElementById("embedCode").value = generateEssentialCode(
+    mode,
+    autoplay,
+    showSpeedControl,
+    modeConfigs
   );
 
-  // Only show mode switcher if more than one mode is selected
-  const showModeSwitcher = Object.keys(modeConfigs).length > 1;
-
-  const embedCode = `<!-- Orbital Visualization Embed -->
-<!-- Container for the visualization -->
-<div id="orbital-visualization"></div>
-
-${
-  showModeSwitcher
-    ? `<!-- Mode switcher buttons (customize the styling in Webflow) -->
-<div class="orbital-mode-switcher">
-  ${Object.keys(modeConfigs)
-    .map(
-      (m) =>
-        `<button class="orbital-mode-trigger${
-          m === mode ? " active" : ""
-        }" data-mode="${m}">${
-          m === "current" ? "Current Settings" : `Mode ${m}`
-        }</button>`
-    )
-    .join("\n  ")}
-</div>`
-    : ""
+  // Update the extras code based on the active tab
+  updateExtrasCode(mode, modeConfigs);
 }
 
-<!-- Required scripts and styles -->
-<script src="https://the-shaper.github.io/orbital-embed.js"></script>
-<script src="https://the-shaper.github.io/orbital-core.js"></script>
-<link rel="stylesheet" href="https://the-shaper.github.io/orbital-embed.css">
+function updateExtrasCode(mode, modeConfigs) {
+  const activeTab = document.querySelector(".extras-tab.active").dataset.tab;
+  const extrasTextarea = document.getElementById("extrasCode");
 
-<!-- Initialization script -->
-<script>
-  // Mode configurations
-  const ORBITAL_CONFIGS = ${configString};
+  switch (activeTab) {
+    case "mode-switcher":
+      extrasTextarea.value = generateModeSwitcherCode(modeConfigs, mode);
+      break;
+    case "styles":
+      extrasTextarea.value = generateStylesCode();
+      break;
+    case "instructions":
+      extrasTextarea.value = generateInstructionsCode(modeConfigs);
+      break;
+  }
+}
 
-  // Initialize the orbital visualization with complete configuration
-  const orbitalVis = new OrbitalEmbed('orbital-visualization', {
-    mode: '${mode}',
-    autoplay: ${autoplay},
-    showSpeedControl: ${showSpeedControl},
-    configurations: ORBITAL_CONFIGS,
-    defaultConfig: {
-      config: ORBITAL_CONFIGS['${mode}']?.config || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.config || {},
-      dots: ORBITAL_CONFIGS['${mode}']?.dots || ORBITAL_CONFIGS[Object.keys(ORBITAL_CONFIGS)[0]]?.dots || {}
-    }
+// Copy functions
+function copyEmbedCode() {
+  const embedCode = document.getElementById("embedCode");
+  embedCode.select();
+  document.execCommand("copy");
+
+  const copyButton = document.querySelector('[onclick="copyEmbedCode()"]');
+  const originalText = copyButton.textContent;
+  copyButton.textContent = "✅ Copied!";
+  setTimeout(() => {
+    copyButton.textContent = originalText;
+  }, 2000);
+}
+
+function copyExtrasCode() {
+  const extrasCode = document.getElementById("extrasCode");
+  extrasCode.select();
+  document.execCommand("copy");
+
+  const copyButton = document.querySelector('[onclick="copyExtrasCode()"]');
+  const originalText = copyButton.textContent;
+  copyButton.textContent = "✅ Copied!";
+  setTimeout(() => {
+    copyButton.textContent = originalText;
+  }, 2000);
+}
+
+// Add event listeners
+document.querySelectorAll(".extras-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document
+      .querySelectorAll(".extras-tab")
+      .forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    const mode = document.getElementById("embedDefaultMode").value;
+    updateExtrasCode(mode, modeConfigs);
   });
-
-  ${
-    showModeSwitcher
-      ? `// Connect mode switcher buttons
-  document.querySelectorAll('.orbital-mode-trigger').forEach(trigger => {
-    trigger.addEventListener('click', () => {
-      const mode = trigger.getAttribute('data-mode');
-      if (mode && ORBITAL_CONFIGS[mode]) {
-        // Update visualization
-        orbitalVis.setMode(mode);
-        
-        // Update button states
-        document.querySelectorAll('.orbital-mode-trigger').forEach(t => 
-          t.classList.toggle('active', t === trigger)
-        );
-      }
-    });
-  });`
-      : ""
-  }
-</script>
-
-${
-  showModeSwitcher
-    ? `<!-- Example CSS for mode switcher (can be customized in Webflow) -->
-<style>
-  .orbital-mode-switcher {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    justify-content: center;
-  }
-  
-  .orbital-mode-trigger {
-    padding: 8px 16px;
-    border: 2px solid #cce0cc;
-    background: transparent;
-    color: #cce0cc;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  .orbital-mode-trigger.active {
-    background: #cce0cc;
-    color: #1a1a1a;
-  }
-  
-  .orbital-mode-trigger:hover {
-    opacity: 0.8;
-  }
-</style>`
-    : ""
-}
-
-<!-- Instructions for Webflow implementation -->
-<!--
-HOW TO USE IN WEBFLOW:
-1. Add an "Embed" element to your page
-2. Copy everything above into the embed code${
-    showModeSwitcher
-      ? `
-3. To create custom mode triggers:
-   - Add any clickable element (button, div, etc.)
-   - Add class: orbital-mode-trigger
-   - Add attribute: data-mode="${Object.keys(modeConfigs).join('" or "')}"
-4. Style your elements in Webflow:
-   - Normal state: default styles
-   - Active state: use .orbital-mode-trigger.active`
-      : ""
-  }
--->`;
-
-  document.getElementById("embedCode").value = embedCode;
-}
-
-// Add event listeners for embed settings
-document
-  .getElementById("embedDefaultMode")
-  .addEventListener("change", updateEmbedCode);
-document
-  .getElementById("embedAutoplay")
-  .addEventListener("change", updateEmbedCode);
-document
-  .getElementById("embedShowSpeedControl")
-  .addEventListener("change", updateEmbedCode);
-document
-  .getElementById("embedIncludeModeA")
-  .addEventListener("change", updateEmbedCode);
-document
-  .getElementById("embedIncludeModeB")
-  .addEventListener("change", updateEmbedCode);
-document
-  .getElementById("embedIncludeCurrent")
-  .addEventListener("change", updateEmbedCode);
+});
